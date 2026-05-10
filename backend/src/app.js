@@ -1,0 +1,82 @@
+// backend/src/app.js
+import 'dotenv/config';
+import express from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
+import mongoSanitize from 'mongo-sanitize';
+import morgan from 'morgan';
+import connectDB from './config/db.js';
+import initializeFirebase from './config/firebase.js';
+import logger from './utils/logger.js';
+import { errorHandler } from './middleware/errorHandler.js';
+import { generalLimiter } from './middleware/rateLimiter.js';
+import { scheduleDiscovery } from './jobs/toolDiscovery.js';
+import { scheduleTrendingDecay } from './jobs/trendingJob.js';
+
+// Prevent process crashes from unhandled errors
+process.on('unhandledRejection', (reason, promise) => {
+  logger.warn(`Unhandled Rejection at: ${promise}, reason: ${reason}`);
+});
+
+process.on('uncaughtException', (error) => {
+  logger.error(`Uncaught Exception: ${error.message}`);
+});
+
+// Routes
+import toolsRoutes from './routes/tools.js';
+import aiRoutes from './routes/ai.js';
+import authRoutes from './routes/auth.js';
+import adminRoutes from './routes/admin.js';
+import trendingRoutes from './routes/trending.js';
+import bookmarkRoutes from './routes/bookmarks.js';
+
+// Initialize core services
+connectDB();
+initializeFirebase();
+scheduleDiscovery();
+scheduleTrendingDecay();
+
+const app = express();
+
+// Trust proxy if behind a reverse proxy (Heroku, Nginx, etc.)
+app.set('trust proxy', 1);
+
+// Security Middleware
+
+app.use(helmet());
+const allowedOrigins = process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : ['http://localhost:5173'];
+app.use(cors({ origin: allowedOrigins, credentials: true }));
+app.use(express.json({ limit: '1mb' }));
+app.use((req, res, next) => {
+  req.body = mongoSanitize(req.body);
+  next();
+});
+
+// Logging
+if (process.env.NODE_ENV !== 'test') {
+  app.use(morgan('combined', { stream: { write: message => logger.info(message.trim()) } }));
+}
+
+// Rate Limiting (General)
+app.use('/api', generalLimiter);
+
+// API Routes
+app.use('/api/tools', toolsRoutes);
+app.use('/api/ai', aiRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/trending', trendingRoutes);
+app.use('/api/bookmarks', bookmarkRoutes);
+
+// Health check
+app.get('/api/health', (req, res) => res.status(200).json({ status: 'ok' }));
+
+// Global Error Handler
+app.use(errorHandler);
+
+const PORT = process.env.PORT || 3001;
+app.listen(PORT, () => {
+  logger.info(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
+});
+
+export default app;
