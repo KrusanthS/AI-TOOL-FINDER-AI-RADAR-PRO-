@@ -1,0 +1,70 @@
+# Render Blueprint Specification
+# Commit this file to your git repository, and you can deploy your entire stack
+# as a SINGLE unified Web Service by selecting "Blueprint" in your Render dashboard.
+
+services:
+  - type: web
+    name: ai-radar-pro
+    env: node
+    plan: free
+    # Do not set rootDir so that Render runs commands from the repository root
+    buildCommand: npm install --prefix backend && npm install --prefix frontend --production=false && npm run build --prefix frontend
+    startCommand: npm start --prefix backend
+    envVars:
+      # Backend Config
+      - key: PORT
+        value: 3001
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        placeholder: "Your MongoDB Atlas connection URI"
+      - key: REDIS_URL
+        placeholder: "Your Redis connection URL (e.g., from Upstash)"
+      - key: FIREBASE_PROJECT_ID
+        placeholder: "Firebase project ID"
+      - key: FIREBASE_CLIENT_EMAIL
+        placeholder: "Firebase Admin SDK service account client email"
+      - key: FIREBASE_PRIVATE_KEY
+        placeholder: "Firebase Admin SDK private key (remember to escape or use quotes)"
+      - key: JWT_SECRET
+        generateValue: true # Render will automatically generate a secure random key
+      - key: RATE_LIMIT_WINDOW
+        value: "15"
+      - key: RATE_LIMIT_MAX
+        value: "1000"
+      - key: ADMIN_EMAIL
+        placeholder: "Admin user email"
+      - key: GROQ_API_KEY
+        placeholder: "Groq API key for search/RAG"
+      - key: PINECONE_API_KEY
+        placeholder: "Pinecone API key for vector search"
+      - key: GEMINI_API_KEY
+        placeholder: "Gemini API key"
+      - key: OPENAI_API_KEY
+        placeholder: "OpenAI API key (optional)"
+      - key: OPENAI_MODEL
+        value: gpt-4o
+      - key: PRODUCT_HUNT_API_KEY
+        placeholder: "Product Hunt API key"
+      - key: PRODUCT_HUNT_API_SECRET
+        placeholder: "Product Hunt API Secret"
+      - key: GITHUB_TOKEN
+        placeholder: "GitHub Personal Access Token"
+
+      # Frontend Config (Compiled into static assets during build)
+      - key: VITE_API_URL
+        value: "/api" # Since frontend & backend share the domain, relative URL is perfect!
+      - key: VITE_FIREBASE_API_KEY
+        placeholder: "Firebase client API key"
+      - key: VITE_FIREBASE_AUTH_DOMAIN
+        placeholder: "Firebase client auth domain"
+      - key: VITE_FIREBASE_PROJECT_ID
+        placeholder: "Firebase client project ID"
+      - key: VITE_FIREBASE_STORAGE_BUCKET
+        placeholder: "Firebase client storage bucket"
+      - key: VITE_FIREBASE_MESSAGING_SENDER_ID
+        placeholder: "Firebase client messaging sender ID"
+      - key: VITE_FIREBASE_APP_ID
+        placeholder: "Firebase client web app ID"
+      - key: VITE_FIREBASE_MEASUREMENT_ID
+        placeholder: "Firebase client measurement ID"

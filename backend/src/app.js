@@ -5,6 +5,8 @@ import cors from 'cors';
 import helmet from 'helmet';
 import mongoSanitize from 'mongo-sanitize';
 import morgan from 'morgan';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import connectDB from './config/db.js';
 import initializeFirebase from './config/firebase.js';
 import logger from './utils/logger.js';
@@ -87,6 +89,21 @@ app.use('/api/bookmarks', bookmarkRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => res.status(200).json({ status: 'ok' }));
+
+// Serve frontend static files in production
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const frontendBuildPath = path.join(__dirname, '../../frontend/dist');
+
+app.use(express.static(frontendBuildPath));
+
+// Catch-all route to serve Index.html for Single Page App router
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api')) {
+    return next(); // Let API routes return 404/errors instead of index.html
+  }
+  res.sendFile(path.join(frontendBuildPath, 'index.html'));
+});
 
 // Global Error Handler
 app.use(errorHandler);
