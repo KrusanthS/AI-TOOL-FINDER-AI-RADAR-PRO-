@@ -1,9 +1,20 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
+import api from '../services/api';
 
 export default function Dashboard() {
   const { user, isAuthenticated } = useAuthStore();
+  const navigate = useNavigate();
+  const [bookmarkedTools, setBookmarkedTools] = React.useState([]);
+
+  React.useEffect(() => {
+    if (isAuthenticated) {
+      api.get('/bookmarks').then(res => {
+        setBookmarkedTools(res.data || []);
+      }).catch(err => console.error('Failed to fetch bookmarks for dashboard', err));
+    }
+  }, [isAuthenticated]);
 
   if (!isAuthenticated) {
     return (
@@ -11,24 +22,14 @@ export default function Dashboard() {
         <div className="text-6xl mb-6">🔒</div>
         <h1 className="text-3xl font-bold mb-3">Sign in required</h1>
         <p className="text-muted-foreground mb-8">You need to sign in to access your dashboard.</p>
-        <button className="px-8 py-3 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-semibold shadow-lg hover:shadow-violet-500/25 transition-all">
+        <button
+          onClick={() => navigate('/')}
+          className="px-8 py-3 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-semibold shadow-lg hover:shadow-violet-500/25 transition-all">
           Sign In
         </button>
       </div>
     );
   }
-
-  const [bookmarkedTools, setBookmarkedTools] = React.useState([]);
-
-  React.useEffect(() => {
-    if (isAuthenticated) {
-      import('../services/api').then(({ default: api }) => {
-        api.get('/bookmarks').then(res => {
-          setBookmarkedTools(res.data || []);
-        }).catch(err => console.error('Failed to fetch bookmarks for dashboard', err));
-      });
-    }
-  }, [isAuthenticated]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 animate-fade-in">
@@ -83,9 +84,10 @@ export default function Dashboard() {
           <div className="space-y-4">
             {bookmarkedTools.length > 0 ? (
               bookmarkedTools.slice(0, 5).map(item => {
-                const tool = item.toolId || item; // accommodate different populate structures
+                // bookmarks API returns flat tool objects directly
+                const tool = item;
                 return (
-                  <div key={tool._id} className="flex items-start gap-4">
+                  <div key={tool._id || tool.bookmarkId} className="flex items-start gap-4">
                     <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-lg">🔖</div>
                     <div>
                       <Link to={`/tool/${tool.slug}`} className="text-sm font-medium hover:text-primary transition-colors">{tool.name}</Link>

@@ -14,8 +14,19 @@ import { scheduleDiscovery } from './jobs/toolDiscovery.js';
 import { scheduleTrendingDecay } from './jobs/trendingJob.js';
 
 // Prevent process crashes from unhandled errors
+const _seenUnhandled = new Set();
 process.on('unhandledRejection', (reason, promise) => {
-  logger.warn(`Unhandled Rejection at: ${promise}, reason: ${reason}`);
+  try {
+    const key = String(reason && reason.message) || String(reason);
+    if (!_seenUnhandled.has(key)) {
+      _seenUnhandled.add(key);
+      logger.warn(`Unhandled Rejection at: ${promise}, reason: ${reason}`);
+      // expire after a short window to allow re-reporting new occurrences
+      setTimeout(() => _seenUnhandled.delete(key), 60 * 1000);
+    }
+  } catch (e) {
+    logger.warn('Unhandled Rejection (unknown)');
+  }
 });
 
 process.on('uncaughtException', (error) => {
@@ -25,10 +36,13 @@ process.on('uncaughtException', (error) => {
 // Routes
 import toolsRoutes from './routes/tools.js';
 import aiRoutes from './routes/ai.js';
+import aiToolSearchRoutes from './routes/aiToolSearch.js';
 import authRoutes from './routes/auth.js';
 import adminRoutes from './routes/admin.js';
 import trendingRoutes from './routes/trending.js';
 import bookmarkRoutes from './routes/bookmarks.js';
+import githubReposRoutes from './routes/githubRepos.js';
+import consultantRoutes from './routes/consultant.js';
 
 // Initialize core services
 connectDB();
@@ -62,7 +76,10 @@ app.use('/api', generalLimiter);
 
 // API Routes
 app.use('/api/tools', toolsRoutes);
+app.use('/api/github-repos', githubReposRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/ai-tool-search', aiToolSearchRoutes);
+app.use('/api/consultant', consultantRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/trending', trendingRoutes);

@@ -5,24 +5,20 @@ import api from '../services/api';
 export default function Admin() {
   const { user, isAuthenticated } = useAuthStore();
   const [activeTab, setActiveTab] = useState('overview');
+  const [stats, setStats] = useState(null);
 
   // Check for admin role in the user object
   const isAdmin = isAuthenticated && user?.role === 'admin';
+  const showDemo = isAuthenticated && !isAdmin;
 
-  if (!isAuthenticated) {
-    return (
-      <div className="max-w-4xl mx-auto px-4 py-20 text-center animate-fade-in">
-        <div className="text-6xl mb-6">🔒</div>
-        <h1 className="text-3xl font-bold mb-3">Sign in required</h1>
-        <p className="text-muted-foreground mb-8">You need to sign in to access the admin panel.</p>
-      </div>
-    );
-  }
-
-  // To let user preview the dashboard without actually being an admin for the demo
-  // But restricted features will still fail on the backend
-  const showDemo = !isAdmin;
-
+  // Fetch real stats when overview tab is active
+  React.useEffect(() => {
+    if (isAuthenticated && activeTab === 'overview') {
+      api.get('/admin/stats')
+        .then(res => setStats(res.data))
+        .catch(() => {}); // silently fail — backend guards admin route
+    }
+  }, [isAuthenticated, activeTab]);
 
   const handleTriggerDiscovery = async () => {
     try {
@@ -41,6 +37,25 @@ export default function Admin() {
       alert('Failed to trigger enrichment');
     }
   };
+
+  const handleTriggerTrending = async () => {
+    try {
+      await api.post('/admin/jobs/trending');
+      alert('Trending recalculation triggered');
+    } catch (error) {
+      alert('Failed to trigger trending recalculation');
+    }
+  };
+
+  if (!isAuthenticated) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-20 text-center animate-fade-in">
+        <div className="text-6xl mb-6">🔒</div>
+        <h1 className="text-3xl font-bold mb-3">Sign in required</h1>
+        <p className="text-muted-foreground mb-8">You need to sign in to access the admin panel.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 animate-fade-in">
@@ -90,19 +105,19 @@ export default function Admin() {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
                 <div className="rounded-2xl border border-border bg-card p-5">
                   <p className="text-sm text-muted-foreground mb-1">Total Tools</p>
-                  <p className="text-3xl font-black">2,412</p>
+                  <p className="text-3xl font-black">{stats?.totalTools ?? '...'}</p>
                 </div>
                 <div className="rounded-2xl border border-border bg-card p-5">
                   <p className="text-sm text-muted-foreground mb-1">Pending Approval</p>
-                  <p className="text-3xl font-black text-orange-500">45</p>
+                  <p className="text-3xl font-black text-orange-500">{stats?.pendingTools ?? '...'}</p>
                 </div>
                 <div className="rounded-2xl border border-border bg-card p-5">
-                  <p className="text-sm text-muted-foreground mb-1">Active Users</p>
-                  <p className="text-3xl font-black">12.4K</p>
+                  <p className="text-sm text-muted-foreground mb-1">Total Users</p>
+                  <p className="text-3xl font-black">{stats?.totalUsers ?? '...'}</p>
                 </div>
                 <div className="rounded-2xl border border-border bg-card p-5">
-                  <p className="text-sm text-muted-foreground mb-1">API Health</p>
-                  <p className="text-3xl font-black text-emerald-500">100%</p>
+                  <p className="text-sm text-muted-foreground mb-1">Added This Week</p>
+                  <p className="text-3xl font-black text-emerald-500">{stats?.addedThisWeek ?? '...'}</p>
                 </div>
               </div>
 
@@ -158,7 +173,7 @@ export default function Admin() {
                     <h4 className="font-bold flex items-center gap-2">📉 Recalculate Trending</h4>
                     <p className="text-sm text-muted-foreground">Applies time-decay formulas to tool views and saves to update trending score.</p>
                   </div>
-                  <button className="px-5 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 flex-shrink-0">
+                  <button onClick={handleTriggerTrending} className="px-5 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 flex-shrink-0">
                     Run Now
                   </button>
                 </div>

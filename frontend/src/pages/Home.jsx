@@ -11,9 +11,16 @@ const CATEGORIES = [
   { name: 'Research', icon: '🔬', color: 'from-teal-500/20 to-cyan-500/20', count: 56 },
   { name: 'Marketing', icon: '📣', color: 'from-red-500/20 to-pink-500/20', count: 73 },
   { name: 'Data', icon: '📊', color: 'from-indigo-500/20 to-blue-500/20', count: 42 },
+  { name: 'Cybersecurity', icon: '🛡️', color: 'from-slate-500/20 to-slate-700/20', count: 30 },
+  { name: 'Finance', icon: '💰', color: 'from-green-500/20 to-emerald-500/20', count: 40 },
+  { name: 'Legal', icon: '⚖️', color: 'from-yellow-500/20 to-amber-500/20', count: 30 },
+  { name: 'Healthcare', icon: '🩺', color: 'from-red-500/20 to-pink-500/20', count: 0 },
   { name: 'Design', icon: '🎭', color: 'from-fuchsia-500/20 to-purple-500/20', count: 81 },
-  { name: 'Chat', icon: '💬', color: 'from-sky-500/20 to-blue-500/20', count: 35 },
-  { name: 'Education', icon: '🎓', color: 'from-lime-500/20 to-green-500/20', count: 61 },
+  { name: 'Website Builder', icon: '🌐', color: 'from-cyan-500/20 to-blue-500/20', count: 46 },
+  { name: 'Repository', icon: '📦', color: 'from-slate-500/20 to-slate-700/20', count: 30 },
+  { name: 'LLM', icon: '🧠', color: 'from-indigo-500/20 to-violet-500/20', count: 72 },
+  { name: 'Chatbots', icon: '🤖', color: 'from-sky-500/20 to-blue-500/20', count: 55 },
+  { name: 'AI Search Engines', icon: '🔎', color: 'from-yellow-500/20 to-amber-500/20', count: 40 },
 ];
 
 const FEATURED_TOOLS = [

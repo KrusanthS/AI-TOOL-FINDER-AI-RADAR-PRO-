@@ -53,30 +53,47 @@ export default function ToolCard({ tool, isSelectedForCompare, onCompare, compac
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [saveCount, setSaveCount] = useState(tool?.stats?.saves || 0);
 
+  // Handle both database tools (_id, slug) and internet tools (name, url)
+  const toolId = tool?._id || tool?.name || 'internet-tool';
+  const toolSlug = tool?.slug || tool?.name?.toLowerCase().replace(/[^a-z0-9]/g, '-') || 'tool';
+  
   const {
-    _id,
     name = 'AI Tool',
-    shortDescription = 'An AI-powered tool.',
+    shortDescription,
+    short_description,
+    description,
     category = 'Other',
-    slug = 'tool',
     pricing = { model: 'free' },
     stats = { rating: 0, ratingCount: 0, saves: 0 },
     tags = [],
     media = {},
+    links = {},
+    url,
+    logo,
+    source,
     verified = false,
+    fromCache = false,
   } = tool || {};
+
+  // Determine if this is a live-fetched tool
+  const isLiveTool = source === 'live' || source === 'cache';
+
+  const displayDescription = shortDescription || short_description || description || 'An AI-powered tool.';
 
   const pricingModel = (pricing?.model || 'free').toLowerCase();
 
+  // Check bookmark status for any tool that has a real MongoDB _id
+  const hasDatabaseId = !!(tool?._id) && String(tool._id).length === 24;
+
   useEffect(() => {
-    if (isAuthenticated && _id) {
+    if (isAuthenticated && hasDatabaseId) {
       checkStatus();
     }
-  }, [isAuthenticated, _id]);
+  }, [isAuthenticated, hasDatabaseId, toolId]);
 
   const checkStatus = async () => {
     try {
-      const response = await api.get(`/bookmarks/status/${_id}`);
+      const response = await api.get(`/bookmarks/status/${toolId}`);
       setIsBookmarked(response.data.isBookmarked);
     } catch (e) {}
   };
@@ -90,13 +107,19 @@ export default function ToolCard({ tool, isSelectedForCompare, onCompare, compac
       return;
     }
 
+    // Only tools with a real MongoDB _id can be bookmarked
+    if (!hasDatabaseId) {
+      alert('This tool cannot be bookmarked (no database ID).');
+      return;
+    }
+
     try {
       if (isBookmarked) {
-        await api.delete(`/bookmarks/${_id}`);
+        await api.delete(`/bookmarks/${toolId}`);
         setIsBookmarked(false);
         setSaveCount(prev => prev - 1);
       } else {
-        await api.post('/bookmarks', { toolId: _id });
+        await api.post('/bookmarks', { toolId });
         setIsBookmarked(true);
         setSaveCount(prev => prev + 1);
       }
@@ -108,14 +131,14 @@ export default function ToolCard({ tool, isSelectedForCompare, onCompare, compac
   return (
     <article className="group relative flex flex-col gradient-border rounded-2xl bg-card overflow-hidden hover:glow-sm hover:-translate-y-0.5 transition-all duration-200 h-full">
       {verified && (
-        <div className="absolute top-3 right-3 z-10 text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 font-semibold">
+        <div className="absolute top-3 left-12 z-10 text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 font-semibold">
           ✓ Verified
         </div>
       )}
 
       {/* Compare Toggle */}
       <button 
-        onClick={(e) => { e.preventDefault(); onCompare?.(_id); }}
+        onClick={(e) => { e.preventDefault(); onCompare?.(toolId); }}
         className={cn(
           "absolute top-3 right-3 z-10 flex items-center justify-center font-bold uppercase tracking-widest border transition-all duration-500 overflow-hidden",
           compactCompare ? "w-8 h-8 rounded-full" : "px-3 py-1.5 rounded-lg text-[10px] gap-1.5",
@@ -151,15 +174,15 @@ export default function ToolCard({ tool, isSelectedForCompare, onCompare, compac
         {/* Header */}
         <div className="flex items-center gap-4 mb-4">
           <div className="w-14 h-14 rounded-2xl bg-secondary border border-border flex items-center justify-center flex-shrink-0 overflow-hidden group-hover:scale-105 transition-transform duration-500 relative">
-            {media?.logo ? (
+            {logo ? (
               <img 
-                src={media.logo} 
+                src={logo} 
                 alt={name} 
                 className="w-full h-full object-cover" 
                 loading="lazy" 
                 onError={(e) => {
-                  const domain = tool.links?.website && !tool.links.website.includes('#') 
-                    ? new URL(tool.links.website).hostname 
+                  const domain = (url || links?.website || '')
+                    ? (() => { try { return new URL(url || links.website).hostname; } catch(e) { return ''; } })()
                     : '';
                   
                   if (domain && !e.target.src.includes('google.com')) {
@@ -175,7 +198,7 @@ export default function ToolCard({ tool, isSelectedForCompare, onCompare, compac
             <div 
               className={cn(
                 "logo-fallback absolute inset-0 items-center justify-center font-black text-white",
-                media?.logo ? "hidden" : "flex"
+                logo ? "hidden" : "flex"
               )}
               style={{
                 backgroundColor: getRandomColor(name),
@@ -186,13 +209,31 @@ export default function ToolCard({ tool, isSelectedForCompare, onCompare, compac
             </div>
           </div>
           <div className="flex-1 min-w-0">
-            <Link to={`/tool/${slug}`} className="font-extrabold text-lg leading-none hover:text-primary transition-colors block truncate mb-1.5 tracking-tight">
-              {name}
-            </Link>
-            <div className="flex items-center gap-2">
+            {url ? (
+              <a href={url} target="_blank" rel="noopener noreferrer" className="font-extrabold text-lg leading-none hover:text-primary transition-colors block truncate mb-1.5 tracking-tight">
+                {name} ↗
+              </a>
+            ) : (
+              <Link to={`/tool/${toolSlug}`} className="font-extrabold text-lg leading-none hover:text-primary transition-colors block truncate mb-1.5 tracking-tight">
+                {name}
+              </Link>
+            )}
+            <div className="flex items-center gap-2 flex-wrap">
               <span className="text-[10px] px-2 py-0.5 rounded-md bg-primary/5 text-primary/80 font-bold uppercase tracking-wider border border-primary/10">
                 {category}
               </span>
+              {/* Live fetched tool badge */}
+              {isLiveTool && (
+                <span className="text-[10px] px-2 py-0.5 rounded-md bg-gradient-to-r from-blue-500/10 to-cyan-500/10 text-blue-500 font-bold uppercase tracking-wider border border-blue-500/20 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+                  {fromCache ? 'Cached' : 'Fetched Live'}
+                </span>
+              )}
+              {source && source !== 'database' && source !== 'live' && source !== 'cache' && (
+                <span className="text-[10px] px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-500 font-bold uppercase tracking-wider border border-blue-500/20">
+                  {source}
+                </span>
+              )}
               {verified && (
                 <span className="flex items-center gap-1 text-[10px] text-emerald-500 font-bold uppercase tracking-wider">
                   <span className="w-1 h-1 rounded-full bg-emerald-500" />
@@ -204,7 +245,7 @@ export default function ToolCard({ tool, isSelectedForCompare, onCompare, compac
         </div>
 
         {/* Description */}
-        <p className="text-sm text-muted-foreground line-clamp-2 mb-4 flex-1">{shortDescription}</p>
+        <p className="text-sm text-muted-foreground line-clamp-2 mb-4 flex-1">{displayDescription}</p>
 
         {/* Tags */}
         {tags && tags.length > 0 && (
@@ -235,14 +276,20 @@ export default function ToolCard({ tool, isSelectedForCompare, onCompare, compac
       {/* Hover CTA */}
       <div className="border-t border-white/5 px-6 py-3.5 flex items-center justify-between bg-secondary/20 max-h-0 overflow-hidden group-hover:max-h-20 transition-all duration-500 ease-in-out backdrop-blur-md">
         <div className="flex gap-4 items-center">
-          <Link to={`/tool/${slug}`} className="text-[11px] font-bold text-primary hover:text-primary/80 transition-colors uppercase tracking-wider">
-            Details →
-          </Link>
-          {tool?.links?.website && (
-            <a href={tool.links.website} target="_blank" rel="noopener noreferrer" className="text-[11px] font-black bg-gradient-to-r from-violet-600 to-indigo-600 text-white px-4 py-1.5 rounded-lg shadow-lg shadow-violet-500/20 hover:scale-105 transition-transform">
+          {source === 'database' ? (
+            <Link to={`/tool/${toolSlug}`} className="text-[11px] font-bold text-primary hover:text-primary/80 transition-colors uppercase tracking-wider">
+              Details →
+            </Link>
+          ) : null}
+          {url ? (
+            <a href={url} target="_blank" rel="noopener noreferrer" className="text-[11px] font-black bg-gradient-to-r from-violet-600 to-indigo-600 text-white px-4 py-1.5 rounded-lg shadow-lg shadow-violet-500/20 hover:scale-105 transition-transform">
+              Visit {source === 'github' ? '↗' : '🚀'}
+            </a>
+          ) : links?.website ? (
+            <a href={links.website} target="_blank" rel="noopener noreferrer" className="text-[11px] font-black bg-gradient-to-r from-violet-600 to-indigo-600 text-white px-4 py-1.5 rounded-lg shadow-lg shadow-violet-500/20 hover:scale-105 transition-transform">
               Launch 🚀
             </a>
-          )}
+          ) : null}
         </div>
         <button onClick={toggleBookmark} className={cn("flex items-center gap-1.5 text-[11px] font-bold transition-all hover:scale-110", isBookmarked ? "text-red-500" : "text-muted-foreground/60 hover:text-foreground")}>
           <span>{isBookmarked ? '❤️' : '💾'}</span>

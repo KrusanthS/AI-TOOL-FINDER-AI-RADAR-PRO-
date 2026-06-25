@@ -5,3 +5,29 @@ dist/
 build/
 .DS_Store
 *.log
+
+# VS Code history plugin
+.history/
+
+# Vite timestamp files
+*.timestamp-*.mjs
+
+# Large data/seed files
+backend/src/utils/tools_enriched.json
+backend/src/utils/tools_enriched.json.bak
+backend/src/utils/url_validation_results.json
+backend/src/utils/url_validation_results_incremental.json
+ai_tools_directory*.json
+seed_log.txt
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Temp files
+temp_*.py
+tmp_*.py
+tmp_*.txt
+server_test.log
+server_output.log
+server_error.log

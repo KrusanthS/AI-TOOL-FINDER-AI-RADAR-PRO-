@@ -6,15 +6,18 @@ import logger from '../utils/logger.js';
 export const getBookmarks = async (req, res) => {
   try {
     const bookmarks = await Bookmark.find({ userId: req.user._id })
-      .populate('toolId')
-      .sort({ createdAt: -1 });
+      .populate({ path: 'toolId', select: 'name slug category pricing stats media links tags verified shortDescription' })
+      .sort({ createdAt: -1 })
+      .lean();
 
-    // Extract only the tool details from the bookmarks
-    const bookmarkedTools = bookmarks.map(b => ({
-      ...b.toolId.toObject(),
-      bookmarkId: b._id,
-      bookmarkedAt: b.createdAt
-    }));
+    // Filter out any bookmarks whose referenced tool was deleted
+    const bookmarkedTools = bookmarks
+      .filter(b => b.toolId)
+      .map(b => ({
+        ...b.toolId,
+        bookmarkId: b._id,
+        bookmarkedAt: b.createdAt
+      }));
 
     res.json(bookmarkedTools);
   } catch (error) {
@@ -73,8 +76,10 @@ export const removeBookmark = async (req, res) => {
       return res.status(404).json({ error: 'Bookmark not found' });
     }
 
-    // Decrement save count on tool
-    await Tool.findByIdAndUpdate(id, { $inc: { 'stats.saves': -1 } });
+    // Decrement save count on tool (floor at 0)
+    await Tool.findByIdAndUpdate(id, [
+      { $set: { 'stats.saves': { $max: [0, { $subtract: ['$stats.saves', 1] }] } } }
+    ]);
 
     res.json({ message: 'Bookmark removed successfully' });
   } catch (error) {

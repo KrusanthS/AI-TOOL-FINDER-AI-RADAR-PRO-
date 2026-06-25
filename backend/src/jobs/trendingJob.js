@@ -13,7 +13,13 @@ export const trendingQueue = new Queue('trending-decay', REDIS_URL, {
 
 
 // Handle connection errors to prevent process crash
-trendingQueue.on('error', (err) => logger.warn(`Bull Trending Queue connection issue: ${err.message}`));
+let trendingQueueWarned = false;
+trendingQueue.on('error', (err) => {
+  if (!trendingQueueWarned) {
+    logger.warn(`Bull Trending Queue connection issue: ${err.message}`);
+    trendingQueueWarned = true;
+  }
+});
 
 
 

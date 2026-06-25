@@ -5,21 +5,23 @@ import redisClient from '../config/redis.js';
 
 export const incrementToolView = async (slug) => {
   try {
-    const cacheKey = `view_buffer:${slug}`;
-    const currentViews = await redisClient.incr(cacheKey);
-    
-    // Periodically flush views to DB (e.g., every 10 views)
-    if (currentViews >= 10) {
+    if (redisClient.isReady) {
+      const cacheKey = `view_buffer:${slug}`;
+      const currentViews = await redisClient.incr(cacheKey);
+      // Flush to DB every 10 views
+      if (currentViews >= 10) {
+        await Tool.findOneAndUpdate(
+          { slug },
+          { $inc: { 'stats.views': currentViews, 'stats.weeklyViews': currentViews } }
+        );
+        await redisClient.del(cacheKey);
+      }
+    } else {
+      // Redis unavailable — write directly to DB
       await Tool.findOneAndUpdate(
         { slug },
-        { 
-          $inc: { 
-            'stats.views': currentViews, 
-            'stats.weeklyViews': currentViews 
-          } 
-        }
+        { $inc: { 'stats.views': 1, 'stats.weeklyViews': 1 } }
       );
-      await redisClient.del(cacheKey);
     }
   } catch (error) {
     logger.error(`incrementToolView error: ${error.message}`);

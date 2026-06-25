@@ -4,6 +4,17 @@ import User from '../models/User.js';
 import { invalidateCache } from '../middleware/cacheMiddleware.js';
 import { discoveryQueue, enrichmentQueue } from '../jobs/toolDiscovery.js';
 
+export const triggerTrending = async (req, res) => {
+  try {
+    // Import the trending decay job and run it immediately
+    const { runTrendingDecay } = await import('../jobs/trendingJob.js');
+    await runTrendingDecay();
+    res.json({ message: 'Trending recalculation completed successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
 export const triggerDiscovery = async (req, res) => {
   try {
     await discoveryQueue.add({});

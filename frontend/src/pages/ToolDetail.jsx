@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import api from '../services/api';
+import api, { getReposForTool } from '../services/api';
 import { cn } from '../utils/cn';
 
 const FALLBACK_COLORS = [
@@ -51,6 +51,73 @@ function ProsConsCard({ pros = [], cons = [] }) {
   );
 }
 
+function RelatedRepos({ toolName, category }) {
+  const [repos, setRepos] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!toolName && !category) return;
+    setLoading(true);
+    getReposForTool(toolName, category)
+      .then((data) => setRepos(data.repos || []))
+      .finally(() => setLoading(false));
+  }, [toolName, category]);
+
+  if (!loading && repos.length === 0) return null;
+
+  return (
+    <div className="mb-12 mt-12">
+      <h2 className="text-xl font-bold mb-5 flex items-center gap-2">🐙 Related GitHub Repositories</h2>
+      {loading ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="rounded-2xl border border-border bg-card p-5 animate-pulse">
+              <div className="h-4 bg-muted rounded w-3/4 mb-3" />
+              <div className="h-3 bg-muted rounded w-full mb-2" />
+              <div className="h-3 bg-muted rounded w-4/5 mb-4" />
+              <div className="flex gap-3">
+                <div className="h-8 bg-muted rounded-xl w-1/2" />
+                <div className="h-8 bg-muted rounded-xl w-1/2" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {repos.map((repo) => (
+            <a
+              key={repo.repository_url}
+              href={repo.repository_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group flex flex-col rounded-2xl border border-border bg-card p-5 hover:border-primary/40 hover:-translate-y-1 transition-all shadow-sm hover:shadow-md"
+            >
+              <div className="flex items-start justify-between gap-2 mb-2">
+                <h3 className="font-bold text-sm group-hover:text-primary transition-colors line-clamp-2 flex-1">
+                  {repo.repository_name}
+                </h3>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-secondary border border-border uppercase font-black tracking-widest text-muted-foreground flex-shrink-0">
+                  {repo.language || 'Code'}
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground line-clamp-2 mb-4 flex-1">
+                {repo.description || 'No description available.'}
+              </p>
+              <div className="flex items-center justify-between text-xs text-muted-foreground mt-auto">
+                <span className="flex items-center gap-1">⭐ {repo.stars?.toLocaleString() || 0} stars</span>
+                <span className="flex items-center gap-1">🍴 {repo.forks?.toLocaleString() || 0} forks</span>
+              </div>
+              <div className="mt-3 text-[11px] font-bold uppercase tracking-widest text-primary group-hover:underline">
+                View on GitHub →
+              </div>
+            </a>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function ToolDetail() {
   const { slug } = useParams();
   const [data, setData] = useState({ tool: null, versions: [], related: [] });
@@ -95,7 +162,9 @@ export default function ToolDetail() {
     );
   }
 
-  const { name, category, pricing, stats, description, shortDescription, links, aiMeta, tags, verified, media } = tool;
+  const { name, category, pricing, stats, description, shortDescription, short_description, links, website_url, aiMeta, tags, verified, media } = tool;
+  const displayDescription = shortDescription || short_description || '';
+  const websiteUrl = links?.website || website_url || '';
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 animate-fade-in">
@@ -118,7 +187,7 @@ export default function ToolDetail() {
                 alt={name} 
                 className="w-full h-full object-cover" 
                 onError={(e) => {
-                  const domain = links?.website ? new URL(links.website).hostname : '';
+                  const domain = websiteUrl ? (() => { try { return new URL(websiteUrl).hostname; } catch(e) { return ''; } })() : '';
                   if (domain && !e.target.src.includes('google.com')) {
                     e.target.src = `https://www.google.com/s2/favicons?sz=128&domain=${domain}`;
                   } else {
@@ -148,14 +217,14 @@ export default function ToolDetail() {
                 {verified && <span className="text-xs px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 font-semibold">✓ Verified</span>}
               </div>
               {/* Redirect to Actual Tool Website Button */}
-              {links?.website && (
-                <a href={links.website} target="_blank" rel="noopener noreferrer"
+              {websiteUrl && (
+                <a href={websiteUrl} target="_blank" rel="noopener noreferrer"
                   className="px-6 py-3 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-bold hover:opacity-90 transition-opacity shadow-lg shadow-violet-500/20 flex items-center gap-2">
                   Launch {name} 🚀
                 </a>
               )}
             </div>
-            <p className="text-lg text-muted-foreground mb-4">{shortDescription}</p>
+            <p className="text-lg text-muted-foreground mb-4">{displayDescription}</p>
 
             {/* Meta row */}
             <div className="flex flex-wrap gap-3 mb-5">
@@ -255,6 +324,9 @@ export default function ToolDetail() {
           </div>
         </div>
       )}
+
+      {/* Related GitHub Repositories */}
+      <RelatedRepos toolName={name} category={category} />
 
       {/* Related Tools */}
       {related && related.length > 0 && (

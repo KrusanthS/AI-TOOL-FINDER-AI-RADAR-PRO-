@@ -12,6 +12,7 @@ import Footer from './components/layout/Footer';
 import Home from './pages/Home';
 import Discover from './pages/Discover';
 import ToolDetail from './pages/ToolDetail';
+import RepoDetail from './pages/RepoDetail';
 import Compare from './pages/Compare';
 import Bookmarks from './pages/Bookmarks';
 import Dashboard from './pages/Dashboard';
@@ -50,6 +51,7 @@ function App() {
             <Route path="/" element={<Home />} />
             <Route path="/discover" element={<Discover />} />
             <Route path="/tool/:slug" element={<ToolDetail />} />
+            <Route path="/repo/:slug" element={<RepoDetail />} />
             <Route path="/compare" element={<Compare />} />
             <Route path="/bookmarks" element={<Bookmarks />} />
             <Route path="/dashboard" element={<Dashboard />} />

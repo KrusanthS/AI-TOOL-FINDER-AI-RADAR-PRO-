@@ -33,9 +33,11 @@ export const requireAuth = async (req, res, next) => {
     }
 
 
-    // Update last active time
-    user.lastActive = new Date();
-    await user.save();
+    // Update last active time (throttle: only write if > 5 minutes since last update)
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+    if (!user.lastActive || user.lastActive < fiveMinutesAgo) {
+      await User.findByIdAndUpdate(user._id, { lastActive: new Date() });
+    }
 
     req.user = user;
     next();

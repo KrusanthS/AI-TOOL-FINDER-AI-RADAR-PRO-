@@ -6,6 +6,8 @@ import logger from '../utils/logger.js';
 
 const REDIS_URL = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
 
+const DISABLE_AUTONOMOUS = (process.env.DISABLE_AUTONOMOUS_AI === '1' || process.env.DISABLE_AUTONOMOUS_AI === 'true');
+
 export const discoveryQueue = new Queue('tool-discovery', REDIS_URL, {
   createClient: createBullClient,
 });
@@ -17,8 +19,20 @@ export const enrichmentQueue = new Queue('ai-enrichment', REDIS_URL, {
 
 
 // Handle connection errors to prevent process crash
-discoveryQueue.on('error', (err) => logger.warn(`Bull Discovery Queue connection issue: ${err.message}`));
-enrichmentQueue.on('error', (err) => logger.warn(`Bull Enrichment Queue connection issue: ${err.message}`));
+let discoveryQueueWarned = false;
+let enrichmentQueueWarned = false;
+discoveryQueue.on('error', (err) => {
+  if (!discoveryQueueWarned) {
+    logger.warn(`Bull Discovery Queue connection issue: ${err.message}`);
+    discoveryQueueWarned = true;
+  }
+});
+enrichmentQueue.on('error', (err) => {
+  if (!enrichmentQueueWarned) {
+    logger.warn(`Bull Enrichment Queue connection issue: ${err.message}`);
+    enrichmentQueueWarned = true;
+  }
+});
 
 
 
@@ -31,34 +45,37 @@ export const runDiscovery = async () => {
 
   try {
     const randomCategory = CATEGORIES[Math.floor(Math.random() * CATEGORIES.length)];
-    logger.info(`Running autonomous AI search for category: ${randomCategory}`);
-    const aiTools = await autonomousAISearch(randomCategory);
-    
-    for (const tool of aiTools) {
-      if (tool.name && tool.website) {
-        const exists = await Tool.findOne({ 
-          $or: [{ name: tool.name }, { 'links.website': tool.website }] 
-        });
-
-        if (!exists) {
-          const newTool = await Tool.create({
-            name: tool.name,
-            shortDescription: tool.tagline || 'AI Tool',
-            description: tool.description || 'Discovered automatically.',
-            links: { website: tool.website },
-            source: 'autonomous-ai',
-            category: tool.category || randomCategory,
-            status: 'approved'
+    if (!DISABLE_AUTONOMOUS) {
+      logger.info(`Running autonomous AI search for category: ${randomCategory}`);
+      const aiTools = await autonomousAISearch(randomCategory);
+      for (const tool of aiTools) {
+        if (tool.name && tool.website) {
+          const exists = await Tool.findOne({ 
+            $or: [{ name: tool.name }, { 'links.website': tool.website }] 
           });
-          
-          if (redisClient.isReady) {
-            enrichmentQueue.add({ toolId: newTool._id }).catch(err => logger.warn(`Skipped enrichment queue: ${err.message}`));
-          } else {
-            logger.info(`Redis down: skipping background enrichment for ${newTool.name}. Admin can trigger manually.`);
+
+          if (!exists) {
+            const newTool = await Tool.create({
+              name: tool.name,
+              shortDescription: tool.tagline || 'AI Tool',
+              description: tool.description || 'Discovered automatically.',
+              links: { website: tool.website },
+              source: 'autonomous-ai',
+              category: tool.category || randomCategory,
+              status: 'approved'
+            });
+            
+            if (redisClient.isReady) {
+              enrichmentQueue.add({ toolId: newTool._id }).catch(err => logger.warn(`Skipped enrichment queue: ${err.message}`));
+            } else {
+              logger.info(`Redis down: skipping background enrichment for ${newTool.name}. Admin can trigger manually.`);
+            }
+            addedCount++;
           }
-          addedCount++;
         }
       }
+    } else {
+      logger.info('Autonomous AI discovery disabled by env. Skipping autonomous search.');
     }
 
     const phPosts = await fetchProductHuntAITools();
