@@ -98,7 +98,7 @@ const frontendBuildPath = path.join(__dirname, '../../frontend/dist');
 app.use(express.static(frontendBuildPath));
 
 // Catch-all route to serve Index.html for Single Page App router
-app.get('*', (req, res, next) => {
+app.get(/(.*)/, (req, res, next) => {
   if (req.path.startsWith('/api')) {
     return next(); // Let API routes return 404/errors instead of index.html
   }
