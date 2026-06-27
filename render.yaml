@@ -17,15 +17,15 @@ services:
       - key: NODE_ENV
         value: production
       - key: MONGODB_URI
-        placeholder: "Your MongoDB Atlas connection URI"
+        sync: false
       - key: REDIS_URL
-        placeholder: "Your Redis connection URL (e.g., from Upstash)"
+        sync: false
       - key: FIREBASE_PROJECT_ID
-        placeholder: "Firebase project ID"
+        sync: false
       - key: FIREBASE_CLIENT_EMAIL
-        placeholder: "Firebase Admin SDK service account client email"
+        sync: false
       - key: FIREBASE_PRIVATE_KEY
-        placeholder: "Firebase Admin SDK private key (remember to escape or use quotes)"
+        sync: false
       - key: JWT_SECRET
         generateValue: true # Render will automatically generate a secure random key
       - key: RATE_LIMIT_WINDOW
@@ -33,38 +33,38 @@ services:
       - key: RATE_LIMIT_MAX
         value: "1000"
       - key: ADMIN_EMAIL
-        placeholder: "Admin user email"
+        sync: false
       - key: GROQ_API_KEY
-        placeholder: "Groq API key for search/RAG"
+        sync: false
       - key: PINECONE_API_KEY
-        placeholder: "Pinecone API key for vector search"
+        sync: false
       - key: GEMINI_API_KEY
-        placeholder: "Gemini API key"
+        sync: false
       - key: OPENAI_API_KEY
-        placeholder: "OpenAI API key (optional)"
+        sync: false
       - key: OPENAI_MODEL
         value: gpt-4o
       - key: PRODUCT_HUNT_API_KEY
-        placeholder: "Product Hunt API key"
+        sync: false
       - key: PRODUCT_HUNT_API_SECRET
-        placeholder: "Product Hunt API Secret"
+        sync: false
       - key: GITHUB_TOKEN
-        placeholder: "GitHub Personal Access Token"
+        sync: false
 
       # Frontend Config (Compiled into static assets during build)
       - key: VITE_API_URL
         value: "/api" # Since frontend & backend share the domain, relative URL is perfect!
       - key: VITE_FIREBASE_API_KEY
-        placeholder: "Firebase client API key"
+        sync: false
       - key: VITE_FIREBASE_AUTH_DOMAIN
-        placeholder: "Firebase client auth domain"
+        sync: false
       - key: VITE_FIREBASE_PROJECT_ID
-        placeholder: "Firebase client project ID"
+        sync: false
       - key: VITE_FIREBASE_STORAGE_BUCKET
-        placeholder: "Firebase client storage bucket"
+        sync: false
       - key: VITE_FIREBASE_MESSAGING_SENDER_ID
-        placeholder: "Firebase client messaging sender ID"
+        sync: false
       - key: VITE_FIREBASE_APP_ID
-        placeholder: "Firebase client web app ID"
+        sync: false
       - key: VITE_FIREBASE_MEASUREMENT_ID
-        placeholder: "Firebase client measurement ID"
+        sync: false
