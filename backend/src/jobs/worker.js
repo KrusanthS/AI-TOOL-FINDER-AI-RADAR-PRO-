@@ -1,5 +1,5 @@
 // backend/src/jobs/worker.js
-import 'dotenv/config';
+import '../env.js';
 import connectDB from '../config/db.js';
 import logger from '../utils/logger.js';
 import { scheduleDiscovery } from './toolDiscovery.js';
