@@ -1,12 +1,15 @@
 // backend/src/app.js
-import 'dotenv/config';
+import { config as dotenvConfig } from 'dotenv';
+import path, { resolve, dirname } from 'path';
+import { fileURLToPath } from 'url';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import mongoSanitize from 'mongo-sanitize';
 import morgan from 'morgan';
-import path from 'path';
-import { fileURLToPath } from 'url';
+// Load .env from repo root (local dev). On Render, env vars are injected directly.
+const __dirnameApp = dirname(fileURLToPath(import.meta.url));
+dotenvConfig({ path: resolve(__dirnameApp, '../../.env') });
 import connectDB from './config/db.js';
 import initializeFirebase from './config/firebase.js';
 import logger from './utils/logger.js';
