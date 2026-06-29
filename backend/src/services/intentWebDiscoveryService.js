@@ -5,7 +5,7 @@
 
 import axios from 'axios';
 import logger from '../utils/logger.js';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenerativeAI } from '../utils/geminiRotator.js';
 import Groq from 'groq-sdk';
 
 const GEMINI_MODEL = 'gemini-2.0-flash';

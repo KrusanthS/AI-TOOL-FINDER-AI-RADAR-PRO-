@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import api, { getReposForTool } from '../services/api';
 import { cn } from '../utils/cn';
+import { useAuthStore } from '../store/authStore';
 
 const FALLBACK_COLORS = [
   '#7C3AED', // Violet
@@ -17,6 +18,17 @@ const getRandomColor = (name) => {
   if (!name) return FALLBACK_COLORS[0];
   const code = name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
   return FALLBACK_COLORS[code % FALLBACK_COLORS.length];
+};
+
+const stripHtml = (html) => {
+  if (!html) return '';
+  return html
+    .replace(/<\/?[^>]+(>|$)/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"');
 };
 
 function ProsConsCard({ pros = [], cons = [] }) {
@@ -120,9 +132,26 @@ function RelatedRepos({ toolName, category }) {
 
 export default function ToolDetail() {
   const { slug } = useParams();
+  const { isAuthenticated } = useAuthStore();
   const [data, setData] = useState({ tool: null, versions: [], related: [] });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [compareNotice, setCompareNotice] = useState(false);
+  const [analyzeNotice, setAnalyzeNotice] = useState(false);
+
+  // AI Analysis state
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState(null);
+  const [analysisError, setAnalysisError] = useState('');
+
+  const [compareIds, setCompareIds] = useState(() => {
+    try {
+      const saved = localStorage.getItem('ai_radar_compare_ids');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
 
   useEffect(() => {
     const fetchTool = async () => {
@@ -139,6 +168,76 @@ export default function ToolDetail() {
   }, [slug]);
 
   const { tool, versions, related } = data;
+
+  const handleCompareToggle = () => {
+    if (!isAuthenticated) {
+      setCompareNotice(true);
+      setTimeout(() => setCompareNotice(false), 3500);
+      return;
+    }
+    if (!tool?._id) return;
+    let newIds;
+    if (compareIds.includes(tool._id)) {
+      newIds = compareIds.filter(id => id !== tool._id);
+    } else {
+      if (compareIds.length >= 4) {
+        alert('You can compare up to 4 tools.');
+        return;
+      }
+      newIds = [...compareIds, tool._id];
+    }
+    setCompareIds(newIds);
+    localStorage.setItem('ai_radar_compare_ids', JSON.stringify(newIds));
+  };
+
+  const handleAnalyze = async () => {
+    if (!isAuthenticated) {
+      setAnalyzeNotice(true);
+      setTimeout(() => setAnalyzeNotice(false), 3500);
+      return;
+    }
+    if (isAnalyzing || analysisResult) return;
+    setIsAnalyzing(true);
+    setAnalysisError('');
+    try {
+      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+      const response = await fetch(`${apiBase}/ai/analyze`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          toolName: tool?.name,
+          toolId: tool?._id,
+          context: {
+            tool_category: tool?.category,
+            tool_pricing: tool?.pricing?.model,
+          },
+        }),
+      });
+      if (!response.ok) throw new Error(`Server error: ${response.status}`);
+      const result = await response.json();
+
+      // API returns { tool, analysis } — extract the analysis object for rendering
+      const analysisData = result.analysis || result;
+      // Normalise final_verdict from various possible fields
+      if (!analysisData.final_verdict) {
+        analysisData.final_verdict =
+          analysisData.final_recommendation?.summary ||
+          analysisData.recommendation ||
+          null;
+      }
+      // Coerce not_suitable_for to array if backend returned a string
+      if (analysisData.use_case_analysis?.not_suitable_for && !Array.isArray(analysisData.use_case_analysis.not_suitable_for)) {
+        analysisData.use_case_analysis.not_suitable_for = [analysisData.use_case_analysis.not_suitable_for];
+      }
+      setAnalysisResult(analysisData);
+    } catch (err) {
+      setAnalysisError('AI analysis failed. Please try again.');
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const isToolSelectedForCompare = tool?._id && compareIds.includes(tool._id);
 
   if (isLoading) {
     return (
@@ -163,7 +262,8 @@ export default function ToolDetail() {
   }
 
   const { name, category, pricing, stats, description, shortDescription, short_description, links, website_url, aiMeta, tags, verified, media } = tool;
-  const displayDescription = shortDescription || short_description || '';
+  const displayDescription = stripHtml(shortDescription || short_description || '');
+  const cleanDescription = stripHtml(description || '');
   const websiteUrl = links?.website || website_url || '';
 
   return (
@@ -211,18 +311,42 @@ export default function ToolDetail() {
             </div>
           </div>
           <div className="flex-1 w-full">
-            <div className="flex flex-wrap items-center gap-3 mb-2 justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-4 justify-between">
               <div className="flex items-center gap-3">
                 <h1 className="text-3xl font-black">{name}</h1>
                 {verified && <span className="text-xs px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 font-semibold">✓ Verified</span>}
               </div>
-              {/* Redirect to Actual Tool Website Button */}
-              {websiteUrl && (
-                <a href={websiteUrl} target="_blank" rel="noopener noreferrer"
-                  className="px-6 py-3 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-bold hover:opacity-90 transition-opacity shadow-lg shadow-violet-500/20 flex items-center gap-2">
-                  Launch {name} 🚀
-                </a>
-              )}
+              <div className="flex flex-wrap gap-2.5 items-center">
+                {/* Compare Button */}
+                <button
+                  onClick={handleCompareToggle}
+                  className={cn(
+                    "px-4 py-2.5 sm:px-5 sm:py-3 rounded-xl text-sm font-bold border transition-all duration-300 flex items-center gap-2",
+                    isToolSelectedForCompare
+                      ? "bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/25"
+                      : "bg-secondary text-foreground border-border hover:bg-secondary/80"
+                  )}
+                >
+                  {isToolSelectedForCompare ? '✓ Selected' : '⚖️ Compare'}
+                </button>
+
+                {compareIds.length >= 2 && (
+                  <Link
+                    to="/compare"
+                    className="px-4 py-2.5 sm:px-5 sm:py-3 rounded-xl text-sm bg-emerald-600 text-white font-bold hover:bg-emerald-700 transition-colors shadow-lg flex items-center gap-1.5"
+                  >
+                    Compare Now ({compareIds.length}) ⚖️
+                  </Link>
+                )}
+
+                {/* Redirect to Actual Tool Website Button */}
+                {websiteUrl && (
+                  <a href={websiteUrl} target="_blank" rel="noopener noreferrer"
+                    className="px-4 py-2.5 sm:px-5 sm:py-3 rounded-xl text-sm bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-bold hover:opacity-90 transition-opacity shadow-lg shadow-violet-500/20 flex items-center gap-2">
+                    Launch 🚀
+                  </a>
+                )}
+              </div>
             </div>
             <p className="text-lg text-muted-foreground mb-4">{displayDescription}</p>
 
@@ -246,18 +370,192 @@ export default function ToolDetail() {
         </div>
       </div>
 
+      {/* Sign-in notice for compare */}
+      {compareNotice && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 px-6 py-3 rounded-xl bg-amber-500 text-white font-bold text-sm shadow-xl flex items-center gap-2 animate-fade-in-up">
+          <span>🔒</span> Please sign in to compare tools
+        </div>
+      )}
+
+      {/* Sign-in notice for AI analysis */}
+      {analyzeNotice && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 px-6 py-3 rounded-xl bg-amber-500 text-white font-bold text-sm shadow-xl flex items-center gap-2 animate-fade-in-up">
+          <span>🔒</span> Please sign in to analyze
+        </div>
+      )}
+
       {/* AI Summary */}
       {aiMeta?.summary && (
         <div className="rounded-2xl border border-primary/20 bg-primary/5 p-6 mb-8">
-          <h2 className="font-bold text-primary mb-2 flex items-center gap-2">🤖 AI Summary</h2>
-          <p className="text-sm leading-relaxed text-foreground">{aiMeta.summary}</p>
+          {/* Header row */}
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-3">
+            <div className="flex-1">
+              <h2 className="font-bold text-primary mb-2 flex items-center gap-2">🤖 AI Summary</h2>
+              <p className="text-sm leading-relaxed text-foreground">{aiMeta.summary}</p>
+            </div>
+
+            {/* Analyze button — fires automatically on click */}
+            {!analysisResult && (
+              <button
+                onClick={handleAnalyze}
+                disabled={isAnalyzing}
+                className="flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white text-sm font-black shadow-lg shadow-violet-500/25 hover:opacity-90 hover:scale-105 transition-all disabled:opacity-60 disabled:scale-100 self-start"
+              >
+                {isAnalyzing ? (
+                  <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Analyzing...</>
+                ) : (
+                  <>⚡ AI Analysis</>
+                )}
+              </button>
+            )}
+          </div>
+
+          {/* Loading */}
+          {isAnalyzing && !analysisResult && (
+            <div className="mt-4 p-6 rounded-2xl border border-border bg-card text-center">
+              <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+              <p className="font-bold">AI is analysing {tool?.name}...</p>
+              <p className="text-xs text-muted-foreground mt-1">Gemini is generating a deep analysis</p>
+            </div>
+          )}
+
+          {/* Error */}
+          {analysisError && !isAnalyzing && (
+            <p className="mt-3 text-sm text-red-500 bg-red-500/10 px-4 py-2 rounded-xl border border-red-500/20">{analysisError}</p>
+          )}
+
+          {/* Results */}
+          {analysisResult && (
+            <div className="mt-4 border-t border-primary/20 pt-4 space-y-4 animate-fade-in">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">✅</span>
+                  <h3 className="font-black text-base">AI Analysis Complete</h3>
+                  <span className="text-[10px] font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 px-2 py-0.5 rounded-full">DONE</span>
+                </div>
+                <button onClick={() => { setAnalysisResult(null); setAnalysisError(''); }} className="text-xs text-muted-foreground hover:text-foreground transition-colors">Clear ✕</button>
+              </div>
+
+              {/* Overview */}
+              {analysisResult.overview && (
+                <div className="p-4 rounded-xl bg-card border border-border">
+                  <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">📋 Overview</p>
+                  <p className="text-sm text-foreground/90 leading-relaxed">{analysisResult.overview.what_it_does || analysisResult.overview.best_for}</p>
+                </div>
+              )}
+
+              {/* Use case fit */}
+              {analysisResult.use_case_analysis && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {analysisResult.use_case_analysis.ideal_use_cases?.length > 0 && (
+                    <div className="p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/20">
+                      <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider mb-2">✅ Ideal For</p>
+                      <ul className="space-y-1">
+                        {analysisResult.use_case_analysis.ideal_use_cases.slice(0, 3).map((u, i) => (
+                          <li key={i} className="text-xs text-foreground/80 flex items-start gap-1.5"><span className="text-emerald-500 font-bold mt-0.5">+</span>{u}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {analysisResult.use_case_analysis.not_suitable_for?.length > 0 && (
+                    <div className="p-4 rounded-xl bg-red-500/5 border border-red-500/20">
+                      <p className="text-xs font-bold text-red-500 uppercase tracking-wider mb-2">⚠️ Not Ideal For</p>
+                      <ul className="space-y-1">
+                        {analysisResult.use_case_analysis.not_suitable_for.slice(0, 3).map((u, i) => (
+                          <li key={i} className="text-xs text-foreground/80 flex items-start gap-1.5"><span className="text-red-400 font-bold mt-0.5">−</span>{u}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Pros / Cons */}
+              {(analysisResult.pros?.length > 0 || analysisResult.cons?.length > 0) && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {analysisResult.pros?.length > 0 && (
+                    <div className="p-4 rounded-xl bg-card border border-border">
+                      <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider mb-2">✅ Pros</p>
+                      <ul className="space-y-1.5">
+                        {analysisResult.pros.slice(0, 4).map((p, i) => (
+                          <li key={i} className="text-xs text-foreground/80 flex items-start gap-1.5">
+                            <span className="text-emerald-500 font-bold mt-0.5 flex-shrink-0">+</span>
+                            {typeof p === 'object' ? p.point : p}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {analysisResult.cons?.length > 0 && (
+                    <div className="p-4 rounded-xl bg-card border border-border">
+                      <p className="text-xs font-bold text-red-500 uppercase tracking-wider mb-2">❌ Cons</p>
+                      <ul className="space-y-1.5">
+                        {analysisResult.cons.slice(0, 4).map((c, i) => (
+                          <li key={i} className="text-xs text-foreground/80 flex items-start gap-1.5">
+                            <span className="text-red-400 font-bold mt-0.5 flex-shrink-0">−</span>
+                            {typeof c === 'object' ? c.point : c}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Pricing */}
+              {analysisResult.pricing_analysis && (
+                <div className="p-4 rounded-xl bg-card border border-border">
+                  <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">💰 Pricing Fit</p>
+                  <div className="flex flex-wrap gap-2 text-xs">
+                    {analysisResult.pricing_analysis.free_tier && (
+                      <span className="px-2 py-1 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-medium">Free tier: {analysisResult.pricing_analysis.free_tier}</span>
+                    )}
+                    {analysisResult.pricing_analysis.value_for_money && (
+                      <span className="px-2 py-1 rounded-lg bg-primary/10 text-primary border border-primary/20 font-medium capitalize">Value: {analysisResult.pricing_analysis.value_for_money}</span>
+                    )}
+                    {analysisResult.pricing_analysis.target_budget && (
+                      <span className="px-2 py-1 rounded-lg bg-secondary text-muted-foreground border border-border font-medium">{analysisResult.pricing_analysis.target_budget}</span>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Learning curve */}
+              {analysisResult.learning_curve && (
+                <div className="p-4 rounded-xl bg-card border border-border">
+                  <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">📚 Learning Curve</p>
+                  <div className="flex flex-wrap items-center gap-3 text-xs">
+                    {analysisResult.learning_curve.difficulty && (
+                      <span className={cn(
+                        'px-2 py-1 rounded-lg border font-bold capitalize',
+                        analysisResult.learning_curve.difficulty === 'beginner' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' :
+                        analysisResult.learning_curve.difficulty === 'advanced' ? 'bg-red-500/10 text-red-500 border-red-500/20' :
+                        'bg-amber-500/10 text-amber-600 border-amber-500/20'
+                      )}>{analysisResult.learning_curve.difficulty}</span>
+                    )}
+                    {analysisResult.learning_curve.time_to_productivity && (
+                      <span className="text-muted-foreground">⏱ {analysisResult.learning_curve.time_to_productivity}</span>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Final verdict */}
+              {(analysisResult.final_verdict || analysisResult.recommendation) && (
+                <div className="p-4 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white">
+                  <p className="text-xs font-bold uppercase tracking-wider opacity-80 mb-1">🎯 Final Verdict</p>
+                  <p className="text-sm leading-relaxed">{analysisResult.final_verdict || analysisResult.recommendation}</p>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 
       {/* Description */}
       <div className="rounded-2xl border border-border bg-card p-6 mb-8">
         <h2 className="text-xl font-bold mb-4">About {name}</h2>
-        <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">{description}</p>
+        <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">{cleanDescription}</p>
       </div>
 
       {/* Pros & Cons */}

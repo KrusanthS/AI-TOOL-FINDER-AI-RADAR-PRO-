@@ -1,7 +1,8 @@
 // backend/src/services/hybridSearchService.js
-// HYBRID AI TOOL SEARCH ENGINE - Combines Database + Live Internet Sources
+// HYBRID AI TOOL SEARCH ENGINE - Combines Database + Permanent DB + Live Internet Sources
 
 import Tool from '../models/Tool.js';
+import { searchPermanentTools } from './permanentToolService.js';
 import axios from 'axios';
 import logger from '../utils/logger.js';
 
@@ -84,6 +85,33 @@ async function fetchDatabaseTools(query) {
     }));
   } catch (error) {
     logger.error(`Database fetch error: ${error.message}`);
+    return [];
+  }
+}
+
+// ── STEP 1b: Fetch from PERMANENT TOOL DATABASE ───────────────────────────────
+// Queries the curated PermanentTool collection. Gracefully returns [] on error.
+async function fetchPermanentTools(query) {
+  try {
+    const tools = await searchPermanentTools(query || '', { limit: 50 });
+    return tools.map(tool => ({
+      name: tool.name,
+      description: tool.short_description || tool.description || '',
+      url: tool.website_url || '',
+      category: tool.category || 'General',
+      popularity_score: tool.popularity_score || (tool.rating || 0) * 20,
+      recency_score: 50,
+      trust_score: 95, // curated tools get high trust
+      engagement_score: tool.popularity_score || 0,
+      source: 'permanent_db',
+      source_detail: 'curated',
+      logo: tool.logo_url || '',
+      pricing: (tool.pricing || 'unknown').toLowerCase(),
+      tags: tool.tags || [],
+      raw: tool,
+    }));
+  } catch (error) {
+    logger.error(`Permanent DB fetch error: ${error.message}`);
     return [];
   }
 }
@@ -404,9 +432,10 @@ export async function hybridSearch(query, options = {}) {
 
   logger.info(`Hybrid search: query="${query}", includeInternet=${includeInternet}`);
 
-  // STEP 1: Fetch from all sources in parallel (single fetch, no duplication)
-  const [dbTools, internetResults] = await Promise.all([
+  // STEP 1: Fetch from all sources in parallel (DB + Permanent DB + Internet)
+  const [dbTools, permanentTools, internetResults] = await Promise.all([
     fetchDatabaseTools(query),
+    fetchPermanentTools(query),
     includeInternet
       ? Promise.all([
           fetchProductHunt(query),
@@ -422,10 +451,11 @@ export async function hybridSearch(query, options = {}) {
     ? internetResults.flat().filter(Boolean)
     : [];
 
-  logger.info(`Fetched: ${dbTools.length} from DB, ${internetTools.length} from internet`);
+  logger.info(`Fetched: ${dbTools.length} from DB, ${permanentTools.length} from permanent DB, ${internetTools.length} from internet`);
 
-  // STEP 2: Merge datasets
-  let allTools = mergeTools(dbTools, internetTools);
+  // STEP 2: Merge datasets (DB first, then permanent DB, then internet — priority order)
+  let allTools = mergeTools(dbTools, permanentTools);
+  allTools = mergeTools(allTools, internetTools);
 
   // STEP 3: Deduplicate
   const duplicates = findDuplicates(allTools);
@@ -452,6 +482,7 @@ export async function hybridSearch(query, options = {}) {
     total_results: allTools.length,
     sources: {
       database: dbTools.length,
+      permanent_db: permanentTools.length,
       internet: internetTools.length,
       product_hunt: internetTools.filter(t => t.source === 'product_hunt').length,
       github: internetTools.filter(t => t.source === 'github').length,

@@ -79,17 +79,19 @@ export default function Home() {
               className="relative group"
             >
               <div className="absolute inset-0 bg-gradient-to-r from-violet-500 to-indigo-500 rounded-2xl blur-lg opacity-20 group-hover:opacity-40 transition-opacity" />
-              <div className="relative flex items-center bg-card border border-border rounded-2xl p-2 pl-6 focus-within:border-primary/50 transition-all shadow-xl">
-                <span className="text-xl mr-3 opacity-50">🔍</span>
-                <input
-                  name="search"
-                  type="text"
-                  placeholder="Try 'free AI for coding' or 'best image generator'..."
-                  className="flex-1 bg-transparent border-none outline-none text-lg py-2"
-                />
+              <div className="relative flex flex-col sm:flex-row items-stretch sm:items-center bg-card border border-border rounded-2xl p-2 pl-4 sm:pl-6 focus-within:border-primary/50 transition-all shadow-xl gap-2">
+                <div className="flex items-center flex-1 min-w-0">
+                  <span className="text-xl mr-3 opacity-50 flex-shrink-0">🔍</span>
+                  <input
+                    name="search"
+                    type="text"
+                    placeholder="Try 'free AI for coding' or 'best image generator'..."
+                    className="w-full bg-transparent border-none outline-none text-base sm:text-lg py-2"
+                  />
+                </div>
                 <button 
                   type="submit"
-                  className="px-6 py-3 bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-bold rounded-xl hover:opacity-90 transition-opacity"
+                  className="px-6 py-3 bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-bold rounded-xl hover:opacity-90 transition-opacity flex-shrink-0"
                 >
                   Search
                 </button>

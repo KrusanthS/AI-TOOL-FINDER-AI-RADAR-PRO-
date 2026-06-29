@@ -1,7 +1,7 @@
 // backend/src/services/aiComparisonService.js
 // Fast AI comparison using Gemini (primary) → Groq (fallback)
 
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenerativeAI } from '../utils/geminiRotator.js';
 import Groq from 'groq-sdk';
 import logger from '../utils/logger.js';
 

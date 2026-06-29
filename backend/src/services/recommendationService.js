@@ -2,7 +2,7 @@
 // RECOMMENDATION GENERATION
 // Generates personalized, transparent recommendations for the user.
 
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenerativeAI } from '../utils/geminiRotator.js';
 import Groq from 'groq-sdk';
 import logger from '../utils/logger.js';
 

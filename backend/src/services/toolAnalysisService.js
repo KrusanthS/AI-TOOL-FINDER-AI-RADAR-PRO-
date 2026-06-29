@@ -1,7 +1,7 @@
 // backend/src/services/toolAnalysisService.js
 // Deep AI tool analysis system
 
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenerativeAI } from '../utils/geminiRotator.js';
 import Tool from '../models/Tool.js';
 import { hybridSearch } from './hybridSearchService.js';
 import { analyzeUseCase } from './intentAnalysisService.js';
@@ -47,14 +47,13 @@ export async function analyzeTool(toolNameOrId, userContext = {}) {
 
 // ── Fetch Tool (DB + Internet) ─────────────────────────────────────────────────
 async function fetchTool(identifier) {
-  // Try database first
-  let tool = await Tool.findOne({
-    $or: [
-      { _id: identifier },
-      { name: { $regex: identifier, $options: 'i' } },
-      { slug: identifier }
-    ]
-  }).lean();
+  // Build query — only match _id if identifier looks like a valid ObjectId
+  const isObjectId = /^[a-f\d]{24}$/i.test(identifier);
+  const query = isObjectId
+    ? { $or: [{ _id: identifier }, { name: { $regex: identifier, $options: 'i' } }, { slug: identifier }] }
+    : { $or: [{ name: { $regex: identifier, $options: 'i' } }, { slug: identifier }] };
+
+  let tool = await Tool.findOne(query).lean();
   
   if (tool) {
     return {
@@ -110,9 +109,9 @@ IMPORTANT: Analysis must be personalized to the user's context and needs.
 Return JSON:
 {
   "overview": {
-    "what_it_does": "2-3 sentence description",
+    "what_it_does": "2-3 sentence human-readable text description (never just output a URL)",
     "primary_category": "main category",
-    "best_for": "what this tool excels at"
+    "best_for": "what this tool excels at (text only, no URLs)"
   },
   "detailed_analysis": {
     "core_functionality": "how the tool works",
@@ -211,7 +210,7 @@ function generateBasicAnalysis(tool) {
     },
     analysis: {
       overview: {
-        what_it_does: tool.shortDescription || tool.description || 'AI tool',
+        what_it_does: (tool.shortDescription || tool.description)?.startsWith('http') ? 'An online resource or tool at the provided link.' : (tool.shortDescription || tool.description || 'AI tool'),
         primary_category: tool.category || 'General',
         best_for: 'General AI tasks'
       },

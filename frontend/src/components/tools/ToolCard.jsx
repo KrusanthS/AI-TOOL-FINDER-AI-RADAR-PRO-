@@ -28,6 +28,17 @@ const getRandomColor = (name) => {
   return FALLBACK_COLORS[code % FALLBACK_COLORS.length];
 };
 
+const stripHtml = (html) => {
+  if (!html) return '';
+  return html
+    .replace(/<\/?[^>]+(>|$)/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"');
+};
+
 function StarRating({ rating }) {
   const stars = Math.round(Number(rating) || 0);
   return (
@@ -52,6 +63,18 @@ export default function ToolCard({ tool, isSelectedForCompare, onCompare, compac
   const { isAuthenticated } = useAuthStore();
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [saveCount, setSaveCount] = useState(tool?.stats?.saves || 0);
+  const [compareNotice, setCompareNotice] = useState(false);
+
+  const handleCompareClick = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!isAuthenticated) {
+      setCompareNotice(true);
+      setTimeout(() => setCompareNotice(false), 3000);
+      return;
+    }
+    onCompare?.(toolId);
+  };
 
   // Handle both database tools (_id, slug) and internet tools (name, url)
   const toolId = tool?._id || tool?.name || 'internet-tool';
@@ -78,7 +101,9 @@ export default function ToolCard({ tool, isSelectedForCompare, onCompare, compac
   // Determine if this is a live-fetched tool
   const isLiveTool = source === 'live' || source === 'cache';
 
-  const displayDescription = shortDescription || short_description || description || 'An AI-powered tool.';
+  const cleanName = stripHtml(name);
+  const displayDescription = stripHtml(shortDescription || short_description || description || 'An AI-powered tool.');
+  const cleanCategory = stripHtml(category);
 
   const pricingModel = (pricing?.model || 'free').toLowerCase();
 
@@ -129,18 +154,27 @@ export default function ToolCard({ tool, isSelectedForCompare, onCompare, compac
   };
 
   return (
-    <article className="group relative flex flex-col gradient-border rounded-2xl bg-card overflow-hidden hover:glow-sm hover:-translate-y-0.5 transition-all duration-200 h-full">
+    <article className="group relative flex flex-col gradient-border rounded-2xl bg-card overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-300 ease-in-out h-full">
       {verified && (
         <div className="absolute top-3 left-12 z-10 text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 font-semibold">
           ✓ Verified
         </div>
       )}
 
+      {/* Sign-in toast for compare */}
+      {compareNotice && (
+        <div className="absolute inset-x-0 bottom-0 z-20 flex justify-center pb-3 pointer-events-none">
+          <div className="bg-amber-500 text-white text-xs font-bold px-4 py-2 rounded-xl shadow-xl flex items-center gap-1.5 animate-fade-in-up">
+            🔒 Please sign in to compare
+          </div>
+        </div>
+      )}
+
       {/* Compare Toggle */}
       <button 
-        onClick={(e) => { e.preventDefault(); onCompare?.(toolId); }}
+        onClick={handleCompareClick}
         className={cn(
-          "absolute top-3 right-3 z-10 flex items-center justify-center font-bold uppercase tracking-widest border transition-all duration-500 overflow-hidden",
+          "absolute top-3 right-3 z-10 flex items-center justify-center font-bold uppercase tracking-widest border transition-all duration-300 overflow-hidden",
           compactCompare ? "w-8 h-8 rounded-full" : "px-3 py-1.5 rounded-lg text-[10px] gap-1.5",
           isSelectedForCompare 
             ? "bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/40 scale-110" 
@@ -177,7 +211,7 @@ export default function ToolCard({ tool, isSelectedForCompare, onCompare, compac
             {logo ? (
               <img 
                 src={logo} 
-                alt={name} 
+                alt={cleanName} 
                 className="w-full h-full object-cover" 
                 loading="lazy" 
                 onError={(e) => {
@@ -201,26 +235,26 @@ export default function ToolCard({ tool, isSelectedForCompare, onCompare, compac
                 logo ? "hidden" : "flex"
               )}
               style={{
-                backgroundColor: getRandomColor(name),
+                backgroundColor: getRandomColor(cleanName),
                 fontSize: compactCompare ? '1.2rem' : '1.8rem'
               }}
             >
-              {name.charAt(0)}
+              {cleanName.charAt(0)}
             </div>
           </div>
           <div className="flex-1 min-w-0">
             {url ? (
               <a href={url} target="_blank" rel="noopener noreferrer" className="font-extrabold text-lg leading-none hover:text-primary transition-colors block truncate mb-1.5 tracking-tight">
-                {name} ↗
+                {cleanName} ↗
               </a>
             ) : (
               <Link to={`/tool/${toolSlug}`} className="font-extrabold text-lg leading-none hover:text-primary transition-colors block truncate mb-1.5 tracking-tight">
-                {name}
+                {cleanName}
               </Link>
             )}
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-[10px] px-2 py-0.5 rounded-md bg-primary/5 text-primary/80 font-bold uppercase tracking-wider border border-primary/10">
-                {category}
+                {cleanCategory}
               </span>
               {/* Live fetched tool badge */}
               {isLiveTool && (
@@ -274,19 +308,17 @@ export default function ToolCard({ tool, isSelectedForCompare, onCompare, compac
       </div>
 
       {/* Hover CTA */}
-      <div className="border-t border-white/5 px-6 py-3.5 flex items-center justify-between bg-secondary/20 max-h-0 overflow-hidden group-hover:max-h-20 transition-all duration-500 ease-in-out backdrop-blur-md">
-        <div className="flex gap-4 items-center">
-          {source === 'database' ? (
-            <Link to={`/tool/${toolSlug}`} className="text-[11px] font-bold text-primary hover:text-primary/80 transition-colors uppercase tracking-wider">
-              Details →
-            </Link>
-          ) : null}
+      <div className="border-t border-white/5 px-6 py-3 flex items-center justify-between bg-secondary/30 max-h-0 opacity-0 overflow-hidden group-hover:max-h-20 group-hover:opacity-100 transition-all duration-300 ease-in-out backdrop-blur-md">
+        <div className="flex gap-2 items-center">
+          <Link to={`/tool/${toolSlug}`} className="text-[11px] font-bold bg-secondary hover:bg-secondary/80 text-foreground px-3 py-1.5 rounded-lg border border-border transition-all">
+            Details 📋
+          </Link>
           {url ? (
-            <a href={url} target="_blank" rel="noopener noreferrer" className="text-[11px] font-black bg-gradient-to-r from-violet-600 to-indigo-600 text-white px-4 py-1.5 rounded-lg shadow-lg shadow-violet-500/20 hover:scale-105 transition-transform">
-              Visit {source === 'github' ? '↗' : '🚀'}
+            <a href={url} target="_blank" rel="noopener noreferrer" className="text-[11px] font-black bg-gradient-to-r from-violet-600 to-indigo-600 text-white px-3 py-1.5 rounded-lg shadow-lg shadow-violet-500/20 hover:scale-105 transition-transform">
+              Visit 🚀
             </a>
           ) : links?.website ? (
-            <a href={links.website} target="_blank" rel="noopener noreferrer" className="text-[11px] font-black bg-gradient-to-r from-violet-600 to-indigo-600 text-white px-4 py-1.5 rounded-lg shadow-lg shadow-violet-500/20 hover:scale-105 transition-transform">
+            <a href={links.website} target="_blank" rel="noopener noreferrer" className="text-[11px] font-black bg-gradient-to-r from-violet-600 to-indigo-600 text-white px-3 py-1.5 rounded-lg shadow-lg shadow-violet-500/20 hover:scale-105 transition-transform">
               Launch 🚀
             </a>
           ) : null}

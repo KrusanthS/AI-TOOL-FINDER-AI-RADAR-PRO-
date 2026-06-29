@@ -63,3 +63,13 @@ export const toggleBookmark = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+export const getUsersCount = async (req, res) => {
+  try {
+    const count = await User.countDocuments();
+    res.json({ count });
+  } catch (error) {
+    logger.error(`getUsersCount error: ${error.message}`);
+    res.status(500).json({ error: error.message });
+  }
+};

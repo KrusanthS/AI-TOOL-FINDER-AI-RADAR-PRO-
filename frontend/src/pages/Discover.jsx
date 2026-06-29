@@ -82,7 +82,18 @@ export default function Discover() {
   const [isAiSearching,    setIsAiSearching]    = useState(false);
   const [aiMessage,        setAiMessage]        = useState('');
   const [consultantMeta,   setConsultantMeta]   = useState(null);
-  const [selectedForCompare, setSelectedForCompare] = useState([]);
+  const [selectedForCompare, setSelectedForCompare] = useState(() => {
+    try {
+      const saved = localStorage.getItem('ai_radar_compare_ids');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    localStorage.setItem('ai_radar_compare_ids', JSON.stringify(selectedForCompare));
+  }, [selectedForCompare]);
 
   const debounceRef = useRef(null);
 
@@ -323,8 +334,22 @@ export default function Discover() {
   useEffect(() => () => { if (debounceRef.current) clearTimeout(debounceRef.current); }, []);
 
   // ── Display helpers ──────────────────────────────────────────────────────
-  const topTools   = [...tools].sort((a, b) => (b.stats?.rating || 0) - (a.stats?.rating || 0)).slice(0, 2);
-  const otherTools = tools.filter(t => !topTools.find(top => top._id === t._id && t._id));
+  // For AI search results, apply client-side pricing filter since the consultant
+  // returns tools without strict pricing enforcement
+  const displayTools = isAiSearching && pricing !== 'All'
+    ? tools.filter(t => {
+        const model = (t.pricing?.model || '').toLowerCase();
+        return model === pricing.toLowerCase();
+      })
+    : tools;
+
+  const topTools = isAiSearching
+    ? displayTools.slice(0, 2)
+    : [...displayTools].sort((a, b) => (b.stats?.rating || 0) - (a.stats?.rating || 0)).slice(0, 2);
+
+  const otherTools = isAiSearching
+    ? displayTools.slice(2)
+    : displayTools.filter(t => !topTools.find(top => top._id === t._id && t._id));
 
   const toggleCompare = (toolId) => {
     if (selectedForCompare.includes(toolId)) {
@@ -590,7 +615,7 @@ export default function Discover() {
               ✕ Clear
             </button>
           </div>
-          <div className="relative p-1 rounded-[2rem] bg-gradient-to-r from-emerald-500/20 via-teal-500/20 to-green-500/20 border border-emerald-500/30 shadow-lg">
+          <div className="relative p-1 rounded-[2rem] bg-gradient-to-r from-emerald-500/20 via-teal-500/20 to-green-500/20 border border-emerald-500/30 shadow-lg mb-8">
             <div className="bg-card rounded-[1.8rem] overflow-hidden">
               <ToolCard
                 tool={directResult.tool}
@@ -599,6 +624,37 @@ export default function Discover() {
               />
             </div>
           </div>
+
+          {/* Related Tools below Direct Match */}
+          {directResult.related && directResult.related.length > 0 && (
+            <div className="mt-8">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 rounded-2xl bg-secondary/50 flex items-center justify-center text-xl shadow-inner border border-border/50">📋</div>
+                <div>
+                  <h2 className="text-xl font-black tracking-tight">Suggested Related Tools</h2>
+                  <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Alternative or complementary options</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {directResult.related.map((relatedTool) => (
+                  <div 
+                    key={getToolKey(relatedTool)}
+                    className={cn(
+                      'transition-all duration-500 rounded-3xl h-full relative',
+                      selectedForCompare.includes(relatedTool._id) ? 'ring-2 ring-primary ring-offset-4 ring-offset-background scale-[0.98]' : 'hover:-translate-y-1'
+                    )}
+                  >
+                    <ToolCard
+                      tool={relatedTool}
+                      isSelectedForCompare={selectedForCompare.includes(relatedTool._id)}
+                      onCompare={toggleCompare}
+                      compactCompare
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -653,7 +709,7 @@ export default function Discover() {
         <p className="text-sm text-muted-foreground">
           Showing{' '}
           <strong className="text-foreground">
-            {isGithubCategory ? repos.length : tools.length}
+            {isGithubCategory ? repos.length : displayTools.length}
           </strong>{' '}
           {isGithubCategory ? 'repositories' : isAiSearching ? 'expert recommendations' : 'tools'}
           {isCanonicalCategory && !isAiSearching && category !== 'All' && (
@@ -687,12 +743,14 @@ export default function Discover() {
             ))}
           </div>
         )
-      ) : tools.length === 0 ? (
+      ) : tools.length === 0 || displayTools.length === 0 ? (
         <div className="text-center py-20 rounded-2xl border border-dashed border-border bg-card/30 animate-fade-in">
           <div className="text-5xl mb-4">🔍</div>
           <h3 className="text-xl font-bold mb-2">No matching tools</h3>
           <p className="text-muted-foreground mb-4">
-            {aiMessage || 'Try a broader description or check your filters.'}
+            {pricing !== 'All'
+              ? `No ${pricing.toLowerCase()} AI tools are available based on your current requirements.`
+              : aiMessage || 'Try a broader description or check your filters.'}
           </p>
           {isAiSearching && (
             <button onClick={clearSearch} className="px-5 py-2 rounded-lg bg-primary text-primary-foreground font-medium hover:opacity-90 transition-opacity">
@@ -743,7 +801,9 @@ export default function Discover() {
                 <div className="w-10 h-10 rounded-2xl bg-secondary/50 flex items-center justify-center text-xl shadow-inner border border-border/50">📋</div>
                 <div>
                   <h2 className="text-2xl font-black tracking-tight">More Results</h2>
-                  <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Highly rated in this category</p>
+                  <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
+                    {isAiSearching ? 'Additional AI-ranked recommendations' : 'Highly rated in this category'}
+                  </p>
                 </div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-16">

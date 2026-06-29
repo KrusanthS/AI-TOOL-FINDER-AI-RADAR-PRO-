@@ -14,6 +14,7 @@ import { errorHandler } from './middleware/errorHandler.js';
 import { generalLimiter } from './middleware/rateLimiter.js';
 import { scheduleDiscovery } from './jobs/toolDiscovery.js';
 import { scheduleTrendingDecay } from './jobs/trendingJob.js';
+import { startupValidation as validateGeminiKeys } from './utils/geminiRotator.js';
 
 // Prevent process crashes from unhandled errors
 const _seenUnhandled = new Set();
@@ -51,6 +52,7 @@ connectDB();
 initializeFirebase();
 scheduleDiscovery();
 scheduleTrendingDecay();
+validateGeminiKeys();
 
 const app = express();
 

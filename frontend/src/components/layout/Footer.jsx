@@ -1,8 +1,24 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useAuthStore } from '../../store/authStore';
+import api from '../../services/api';
 
 export default function Footer() {
   const year = new Date().getFullYear();
+  const { isAuthenticated } = useAuthStore();
+  const [usersCount, setUsersCount] = useState(0);
+
+  useEffect(() => {
+    const fetchUsersCount = async () => {
+      try {
+        const response = await api.get('/auth/users-count');
+        setUsersCount(response.data.count || 0);
+      } catch (err) {
+        console.error('Failed to fetch users count:', err);
+      }
+    };
+    fetchUsersCount();
+  }, [isAuthenticated]);
 
   return (
     <footer className="border-t border-border bg-card mt-auto">
@@ -49,8 +65,16 @@ export default function Footer() {
         </div>
 
         {/* Bottom */}
-        <div className="border-t border-border pt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="border-t border-border pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-xs text-muted-foreground">&copy; {year} AI RADAR PRO. All rights reserved.</p>
+          
+          {/* Active Members Counter */}
+          <div className="text-xs text-muted-foreground flex items-center gap-1.5 bg-primary/5 px-3 py-1 rounded-full border border-primary/10 select-none">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span>Platform Members:</span>
+            <span className="font-black text-foreground">{usersCount.toLocaleString()} joined</span>
+          </div>
+
           <p className="text-xs text-muted-foreground flex items-center gap-1">
             Built with <span className="text-red-500">❤️</span> using React + OpenAI
           </p>

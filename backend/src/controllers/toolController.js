@@ -134,7 +134,7 @@ export const getTools = async (req, res) => {
   }
 
   if (category) query.category = { $regex: category, $options: 'i' };
-  if (pricing) query['pricing.model'] = pricing;
+  if (pricing) query['pricing.model'] = pricing.toLowerCase();
   if (minRating) query['stats.rating'] = { $gte: Number(minRating) };
   if (tags) query.tags = { $in: tags.split(',') };
   // Note: $text search is applied in the aggregation pipeline, not here

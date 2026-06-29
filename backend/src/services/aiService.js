@@ -1,7 +1,7 @@
 // backend/src/services/aiService.js
 // All AI functions now use Gemini (primary) → Groq (fallback)
 
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenerativeAI } from '../utils/geminiRotator.js';
 import Groq from 'groq-sdk';
 import { generateEmbedding } from './embeddingService.js';
 import logger from '../utils/logger.js';

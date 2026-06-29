@@ -1,7 +1,7 @@
 // backend/src/services/useCaseComparisonService.js
 // Use-case based AI tool comparison system
 
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenerativeAI } from '../utils/geminiRotator.js';
 import Tool from '../models/Tool.js';
 import { hybridSearch } from './hybridSearchService.js';
 import { analyzeUseCase } from './intentAnalysisService.js';

@@ -211,4 +211,84 @@ export const getReposForTool = async (toolName, category) => {
   }
 };
 
+// ── Permanent Tool Admin API Helpers ─────────────────────────────────────────
+// These helpers call the new /api/admin/permanent-tools endpoints.
+// They require the current user to have admin privileges.
+
+/**
+ * Fetch all permanent tools with optional filtering and pagination.
+ * @param {object} options - { page, limit, category, search }
+ */
+export const getPermanentTools = async (options = {}) => {
+  try {
+    const params = new URLSearchParams();
+    if (options.page) params.set('page', options.page);
+    if (options.limit) params.set('limit', options.limit);
+    if (options.category) params.set('category', options.category);
+    if (options.search) params.set('search', options.search);
+    const response = await api.get(`/admin/permanent-tools?${params.toString()}`);
+    return response.data;
+  } catch (error) {
+    console.error('getPermanentTools failed:', error);
+    return { success: false, tools: [], total: 0, error: error.response?.data?.error || 'Failed to fetch permanent tools' };
+  }
+};
+
+/**
+ * Create (or upsert) a new permanent tool.
+ * @param {object} toolData - Tool fields matching PermanentTool schema
+ */
+export const createPermanentTool = async (toolData) => {
+  try {
+    const response = await api.post('/admin/permanent-tools', toolData);
+    return response.data;
+  } catch (error) {
+    console.error('createPermanentTool failed:', error);
+    return { success: false, error: error.response?.data?.error || 'Failed to create tool' };
+  }
+};
+
+/**
+ * Update an existing permanent tool by ID.
+ * @param {string} id - MongoDB _id of the tool
+ * @param {object} toolData - Fields to update
+ */
+export const updatePermanentTool = async (id, toolData) => {
+  try {
+    const response = await api.put(`/admin/permanent-tools/${id}`, toolData);
+    return response.data;
+  } catch (error) {
+    console.error('updatePermanentTool failed:', error);
+    return { success: false, error: error.response?.data?.error || 'Failed to update tool' };
+  }
+};
+
+/**
+ * Delete a permanent tool by ID.
+ * @param {string} id - MongoDB _id of the tool
+ */
+export const deletePermanentTool = async (id) => {
+  try {
+    const response = await api.delete(`/admin/permanent-tools/${id}`);
+    return response.data;
+  } catch (error) {
+    console.error('deletePermanentTool failed:', error);
+    return { success: false, error: error.response?.data?.error || 'Failed to delete tool' };
+  }
+};
+
+/**
+ * Trigger the idempotent seed of 40 pre-defined popular AI tools.
+ * Safe to call multiple times — will not create duplicates.
+ */
+export const seedPermanentTools = async () => {
+  try {
+    const response = await api.post('/admin/permanent-tools/seed');
+    return response.data;
+  } catch (error) {
+    console.error('seedPermanentTools failed:', error);
+    return { success: false, error: error.response?.data?.error || 'Seed failed' };
+  }
+};
+
 export default api;

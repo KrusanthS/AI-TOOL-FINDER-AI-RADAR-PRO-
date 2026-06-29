@@ -1,7 +1,7 @@
 // backend/src/services/intentAnalysisService.js
 // LLM-powered intent understanding and query expansion
 
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenerativeAI } from '../utils/geminiRotator.js';
 import logger from '../utils/logger.js';
 
 const GEMINI_MODEL = 'gemini-2.0-flash';

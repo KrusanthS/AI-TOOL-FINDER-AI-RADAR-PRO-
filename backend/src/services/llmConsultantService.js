@@ -2,7 +2,7 @@
 // LLM-FIRST AI CONSULTANT - The primary decision engine
 // Behaves like a human expert consultant, not a keyword search engine
 
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenerativeAI } from '../utils/geminiRotator.js';
 import Groq from 'groq-sdk';
 import logger from '../utils/logger.js';
 

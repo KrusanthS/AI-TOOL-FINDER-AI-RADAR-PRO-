@@ -2,7 +2,7 @@
 // Live AI Tool Fetch Service - Fetches real-time tool data from Gemini API
 // with caching, validation, error handling, and fallback to Groq
 
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenerativeAI } from '../utils/geminiRotator.js';
 import Groq from 'groq-sdk';
 import redisClient from '../config/redis.js';
 import logger from '../utils/logger.js';

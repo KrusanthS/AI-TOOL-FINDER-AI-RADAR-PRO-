@@ -1,6 +1,6 @@
 // backend/src/services/scrapingService.js
 import axios from 'axios';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenerativeAI } from '../utils/geminiRotator.js';
 import logger from '../utils/logger.js';
 
 // ── Allowed external hosts for SSRF protection ─────────────────────────────────

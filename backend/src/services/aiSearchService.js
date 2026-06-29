@@ -2,7 +2,7 @@
 // Semantic search: Gemini (primary) → Groq (fallback) → Pinecone vector search
 
 import { Pinecone } from '@pinecone-database/pinecone';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenerativeAI } from '../utils/geminiRotator.js';
 import Groq from 'groq-sdk';
 import { generateEmbedding, createToolTextForEmbedding } from './embeddingService.js';
 import logger from '../utils/logger.js';

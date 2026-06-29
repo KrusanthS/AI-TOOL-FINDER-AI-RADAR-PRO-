@@ -13,12 +13,12 @@ export default function Navbar() {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [loginError, setLoginError] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const navLinks = [
     { to: '/discover', label: 'Discover' },
     ...(user?.role === 'admin' ? [{ to: '/admin', label: 'Admin' }] : []),
   ];
-
 
   const handleGoogleLogin = async () => {
     setIsLoggingIn(true);
@@ -36,6 +36,7 @@ export default function Navbar() {
   const handleLogout = async () => {
     await firebaseLogout();
     logout();
+    setIsMobileMenuOpen(false);
   };
 
   return (
@@ -50,8 +51,8 @@ export default function Navbar() {
             <span className="gradient-text hidden sm:inline">RADAR PRO</span>
           </Link>
 
-          {/* Nav links */}
-          <div className="flex items-center gap-1">
+          {/* Desktop Nav links */}
+          <div className="hidden md:flex items-center gap-1">
             {navLinks.map(link => (
               <Link
                 key={link.to}
@@ -67,7 +68,7 @@ export default function Navbar() {
             ))}
           </div>
 
-          {/* Right side */}
+          {/* Right side (Desktop & Mobile) */}
           <div className="flex items-center gap-2">
             {/* Theme Toggle */}
             <button
@@ -78,26 +79,81 @@ export default function Navbar() {
               {theme === 'dark' ? '☀️' : '🌙'}
             </button>
 
+            {/* Desktop Auth */}
+            <div className="hidden md:flex items-center gap-2">
+              {isAuthenticated ? (
+                <div className="flex items-center gap-2">
+                  <Link to="/dashboard">
+                    <img
+                      src={user?.avatar || `https://ui-avatars.com/api/?name=${user?.displayName || 'U'}&background=6d28d9&color=fff`}
+                      alt="Avatar"
+                      className="w-8 h-8 rounded-full border-2 border-primary/40 hover:border-primary transition-colors cursor-pointer"
+                    />
+                  </Link>
+                  <Button variant="ghost" size="sm" onClick={handleLogout} className="text-xs text-muted-foreground">
+                    Logout
+                  </Button>
+                </div>
+              ) : (
+                <Button size="sm" onClick={() => setShowLoginModal(true)} className="rounded-full bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 border-0 text-white shadow-sm transition-all">
+                  Sign In
+                </Button>
+              )}
+            </div>
+
+            {/* Mobile Menu Toggle Button */}
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="md:hidden w-9 h-9 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+              aria-label="Toggle Menu"
+            >
+              {isMobileMenuOpen ? '✕' : '☰'}
+            </button>
+          </div>
+        </div>
+
+        {/* Mobile Dropdown Menu */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden absolute top-16 left-0 right-0 bg-background border-b border-border shadow-lg p-4 animate-fade-in flex flex-col gap-3 z-40">
+            {navLinks.map(link => (
+              <Link
+                key={link.to}
+                to={link.to}
+                onClick={() => setIsMobileMenuOpen(false)}
+                className={`px-4 py-2.5 rounded-xl text-base font-semibold transition-colors ${
+                  location.pathname === link.to
+                    ? 'bg-primary/10 text-primary'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
+                }`}
+              >
+                {link.label}
+              </Link>
+            ))}
+            <hr className="border-border my-1" />
             {isAuthenticated ? (
-              <div className="flex items-center gap-2">
-                <Link to="/dashboard">
+              <div className="flex items-center justify-between px-2">
+                <Link to="/dashboard" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-3">
                   <img
                     src={user?.avatar || `https://ui-avatars.com/api/?name=${user?.displayName || 'U'}&background=6d28d9&color=fff`}
                     alt="Avatar"
-                    className="w-8 h-8 rounded-full border-2 border-primary/40 hover:border-primary transition-colors cursor-pointer"
+                    className="w-10 h-10 rounded-full border-2 border-primary/40"
                   />
+                  <div>
+                    <p className="text-sm font-bold">{user?.displayName || 'User'}</p>
+                    <p className="text-xs text-muted-foreground">My Dashboard</p>
+                  </div>
                 </Link>
-                <Button variant="ghost" size="sm" onClick={handleLogout} className="text-xs text-muted-foreground">
+                <Button variant="ghost" size="sm" onClick={handleLogout}>
                   Logout
                 </Button>
               </div>
             ) : (
-              <Button size="sm" onClick={() => setShowLoginModal(true)} className="rounded-full bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 border-0 text-white shadow-sm transition-all">
+              <Button onClick={() => { setIsMobileMenuOpen(false); setShowLoginModal(true); }} className="w-full rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-sm py-3">
                 Sign In
               </Button>
             )}
           </div>
-        </div>
+        )}
       </nav>
 
       {/* Login Modal */}

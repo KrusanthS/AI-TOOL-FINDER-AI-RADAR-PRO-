@@ -4,6 +4,7 @@
 import Tool from '../models/Tool.js';
 import { hybridSearch } from './hybridSearchService.js';
 import { analyzeIntent, expandQuery, analyzeUseCase } from './intentAnalysisService.js';
+import { searchPermanentTools } from './permanentToolService.js';
 import logger from '../utils/logger.js';
 
 // ── Main Intelligent Search ───────────────────────────────────────────────────
@@ -20,14 +21,15 @@ export async function intelligentSearch(query, options = {}) {
   const expanded = await expandQuery(query, intent);
   logger.info(`Query expanded: ${JSON.stringify(expanded)}`);
   
-  // Step 3: Search both sources in parallel
-  const [dbResults, internetResults] = await Promise.all([
+  // Step 3: Search all sources in parallel (database + permanent DB + internet)
+  const [dbResults, permanentResults, internetResults] = await Promise.all([
     searchDatabase(expanded, intent),
+    searchPermanentDB(query, expanded, intent),
     searchInternet(expanded, intent)
   ]);
   
-  // Step 4: Merge and rank results
-  const merged = mergeResults(dbResults, internetResults, intent);
+  // Step 4: Merge and rank results (permanent DB results fed alongside DB results)
+  const merged = mergeResults([...dbResults, ...permanentResults], internetResults, intent);
   
   // Step 5: Generate recommendations
   const recommendations = generateRecommendations(merged, query, intent);
@@ -40,6 +42,7 @@ export async function intelligentSearch(query, options = {}) {
     tools: recommendations.slice(0, limit),
     sources: {
       database: dbResults.length,
+      permanent_db: permanentResults.length,
       internet: internetResults.length,
     },
     reasoning: generateReasoning(recommendations, intent)
@@ -102,6 +105,102 @@ async function searchDatabase(expanded, intent) {
     logger.error(`Database search error: ${error.message}`);
     return [];
   }
+}
+
+// ── Permanent Database Search ─────────────────────────────────────────────────
+// Queries the dedicated PermanentTool collection (curated, always-on storage).
+// Results are mapped to the same shape as searchDatabase() so mergeResults()
+// can handle them without any special-casing.
+async function searchPermanentDB(query, expanded, intent) {
+  try {
+    // Use expanded keywords to improve recall
+    const searchTerms = [
+      query,
+      ...(expanded.expanded_keywords || []).slice(0, 3),
+    ].filter(Boolean);
+
+    // Run parallel: text-based search for each term, then merge
+    const resultSets = await Promise.all(
+      searchTerms.map(term => searchPermanentTools(term, { limit: 20 }))
+    );
+
+    // Flatten and deduplicate by _id
+    const seen = new Set();
+    const tools = [];
+    for (const set of resultSets) {
+      for (const t of set) {
+        const key = t._id ? t._id.toString() : t.name;
+        if (!seen.has(key)) {
+          seen.add(key);
+          tools.push(t);
+        }
+      }
+    }
+
+    return tools.map(tool => ({
+      // Normalize to common shape used by mergeResults()
+      _id: tool._id,
+      name: tool.name,
+      shortDescription: tool.short_description || tool.description || '',
+      description: tool.description || '',
+      category: tool.category || 'General',
+      tags: tool.tags || [],
+      pricing: { model: (tool.pricing || 'unknown').toLowerCase() },
+      stats: {
+        rating: tool.rating || 0,
+        ratingCount: 0,
+        views: tool.popularity_score || 0,
+      },
+      links: { website: tool.website_url || '' },
+      media: { logo: tool.logo_url || '' },
+      features: tool.features || [],
+      use_cases: tool.use_cases || [],
+      url: tool.website_url || '',
+      logo: tool.logo_url || '',
+      // Source metadata
+      source: 'permanent_db',
+      source_detail: 'curated',
+      relevance_score: calculatePermanentRelevanceScore(tool, expanded, intent),
+      trust_level: 'High (curated database)',
+      why_recommended: generateWhyRecommended(
+        { ...tool, source: 'permanent_db', stats: { rating: tool.rating || 0 } },
+        intent
+      ),
+    }));
+  } catch (error) {
+    logger.error(`Permanent DB search error: ${error.message}`);
+    return [];
+  }
+}
+
+// ── Relevance score for permanent DB tools ────────────────────────────────────
+function calculatePermanentRelevanceScore(tool, expanded, intent) {
+  let score = 0;
+
+  // Category match (40%)
+  const cat = (tool.category || '').toLowerCase();
+  const hint = (intent.category_hint || '').toLowerCase();
+  if (hint && cat === hint) score += 40;
+  else if (hint && cat.includes(hint)) score += 25;
+
+  // Name / keyword match (30%)
+  const nameLower = (tool.name || '').toLowerCase();
+  const descLower = (tool.description || tool.short_description || '').toLowerCase();
+  const matchedKeyword = (expanded.expanded_keywords || []).some(k =>
+    nameLower.includes(k.toLowerCase()) || descLower.includes(k.toLowerCase())
+  );
+  if (matchedKeyword) score += 30;
+
+  // Popularity (15%)
+  score += Math.min(15, (tool.popularity_score || 0) / 10);
+
+  // Rating (10%)
+  score += Math.min(10, (tool.rating || 0) * 2);
+
+  // Permanent DB trust bonus (5%)
+  score += 5;
+
+  return Math.round(score * 100) / 100;
 }
 
 // ── Internet Search (Real-time) ───────────────────────────────────────────────

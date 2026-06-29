@@ -1,7 +1,7 @@
 // backend/src/services/embeddingService.js
 // Uses Gemini text-embedding-004 (768-dim) — fast API call, no local model loading
 
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenerativeAI } from '../utils/geminiRotator.js';
 import logger from '../utils/logger.js';
 
 let genAI = null;

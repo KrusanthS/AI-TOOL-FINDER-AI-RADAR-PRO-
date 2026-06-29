@@ -9,6 +9,17 @@ const LANG_COLORS = {
   Jupyter: '#DA5B0B', R: '#198CE7', Scala: '#c22d40', Dart: '#00B4AB',
 };
 
+const stripHtml = (html) => {
+  if (!html) return '';
+  return html
+    .replace(/<\/?[^>]+(>|$)/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"');
+};
+
 export default function GithubRepoCard({ repo }) {
   const {
     repository_name,
@@ -75,7 +86,7 @@ export default function GithubRepoCard({ repo }) {
 
         {/* Description */}
         <p className="text-xs text-muted-foreground leading-relaxed line-clamp-3 mb-3 flex-1">
-          {description || 'No description available.'}
+          {stripHtml(description || 'No description available.')}
         </p>
 
         {/* Topics */}

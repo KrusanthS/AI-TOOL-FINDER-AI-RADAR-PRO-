@@ -137,17 +137,14 @@ export async function getToolsByCategory(canonicalName, options = {}) {
     ],
   };
 
-  const query = pricing
-    ? { ...baseFilter, $and: [{ $or: baseFilter.$or }, { $or: [{ 'pricing.model': pricing }, { pricing_type: pricing }] }] }
-    : baseFilter;
+  const pricingLower = pricing ? pricing.toLowerCase() : null;
 
-  // When pricing is added we need to restructure to avoid $or conflict
-  const finalQuery = pricing
+  const finalQuery = pricingLower
     ? {
         status: 'approved',
         $and: [
           { $or: baseFilter.$or },
-          { $or: [{ 'pricing.model': pricing }, { pricing_type: pricing }] },
+          { $or: [{ 'pricing.model': pricingLower }, { pricing_type: pricingLower }] },
         ],
       }
     : baseFilter;

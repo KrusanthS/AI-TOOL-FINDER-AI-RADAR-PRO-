@@ -235,12 +235,30 @@ export default function Compare() {
         if (location.state?.selectedIds?.length >= 2) {
           setSelected(tools.filter(t => location.state.selectedIds.includes(t._id)));
         } else {
-          setSelected(tools.slice(0, 2));
+          const savedIds = (() => {
+            try {
+              const saved = localStorage.getItem('ai_radar_compare_ids');
+              return saved ? JSON.parse(saved) : [];
+            } catch {
+              return [];
+            }
+          })();
+          if (savedIds.length >= 2) {
+            setSelected(tools.filter(t => savedIds.includes(t._id)));
+          } else {
+            setSelected(tools.slice(0, 2));
+          }
         }
       } catch (e) { console.error(e); }
     };
     fetchTools();
   }, [location.state]);
+
+  useEffect(() => {
+    if (selected.length > 0) {
+      localStorage.setItem('ai_radar_compare_ids', JSON.stringify(selected.map(t => t._id)));
+    }
+  }, [selected]);
 
   const toggleTool = (tool) => {
     if (selected.find(t => t._id === tool._id)) setSelected(selected.filter(t => t._id !== tool._id));
@@ -445,7 +463,12 @@ export default function Compare() {
           </div>
 
           {/* Tool header cards with winner badges */}
-          <div className={cn('grid gap-4 mb-8', selected.length === 2 ? 'grid-cols-2' : selected.length === 3 ? 'grid-cols-3' : 'grid-cols-4')}>
+          <div className={cn(
+            'grid gap-4 mb-8',
+            selected.length === 2 ? 'grid-cols-2' : 
+            selected.length === 3 ? 'grid-cols-2 sm:grid-cols-3' : 
+            'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4'
+          )}>
             {selected.map(tool => (
               <div key={tool._id} className="rounded-2xl border border-border bg-card p-4 text-center">
                 <div className="w-12 h-12 rounded-xl bg-secondary border border-border flex items-center justify-center overflow-hidden mx-auto mb-2">

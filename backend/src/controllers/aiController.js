@@ -9,7 +9,7 @@ import { hybridSearch, discoverNewTools } from '../services/hybridSearchService.
 import { intelligentSearch as doIntelligentSearch } from '../services/intelligentSearchService.js';
 import { compareForUseCase, quickCompare } from '../services/useCaseComparisonService.js';
 import { analyzeTool as doAnalyzeTool, analyzeForDecision } from '../services/toolAnalysisService.js';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenerativeAI } from '../utils/geminiRotator.js';
 import redisClient from '../config/redis.js';
 import logger from '../utils/logger.js';
 
