@@ -1,5 +1,7 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import api from '../services/api';
+import ToolCard from '../components/tools/ToolCard';
 
 const CATEGORIES = [
   { name: 'Writing', icon: '✍️', color: 'from-blue-500/20 to-cyan-500/20', count: 124 },
@@ -41,6 +43,44 @@ const STATS = [
 
 export default function Home() {
   const navigate = useNavigate();
+  const [featuredTools, setFeaturedTools] = useState([]);
+  const [isFeaturedLoading, setIsFeaturedLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchFeaturedTools = async () => {
+      setIsFeaturedLoading(true);
+      try {
+        const response = await api.get('/tools', {
+          params: {
+            sort: 'rating',
+            page: 1,
+            limit: 6,
+          },
+        });
+
+        if (!cancelled) {
+          setFeaturedTools(response.data.tools || []);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.error('Failed to fetch featured tools:', error);
+          setFeaturedTools([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsFeaturedLoading(false);
+        }
+      }
+    };
+
+    fetchFeaturedTools();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <div className="min-h-screen overflow-hidden">
@@ -170,39 +210,70 @@ export default function Home() {
               See all →
             </Link>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {FEATURED_TOOLS.map((tool, i) => (
-              <Link
-                key={tool.slug}
-                to={`/tool/${tool.slug}`}
-                className="group relative gradient-border rounded-2xl p-5 hover:glow-sm transition-all duration-300 animate-fade-in-up"
-                style={{ animationDelay: `${i * 80}ms` }}
-              >
-                <div className="flex items-start gap-4">
-                  <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${tool.gradient} flex items-center justify-center text-2xl flex-shrink-0 group-hover:scale-105 transition-transform`}>
-                    {tool.icon}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2 mb-1">
-                      <h3 className="font-bold text-base truncate">{tool.name}</h3>
-                      <span className="text-xs px-2 py-0.5 rounded-full border border-border text-muted-foreground flex-shrink-0">
-                        {tool.pricing}
-                      </span>
-                    </div>
-                    <p className="text-sm text-muted-foreground mb-2 line-clamp-2">{tool.desc}</p>
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
-                        {tool.category}
-                      </span>
-                      <span className="flex items-center gap-1 text-xs font-semibold text-yellow-500">
-                        ⭐ {tool.rating}
-                      </span>
+          {isFeaturedLoading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="rounded-2xl border border-border bg-card p-6 animate-pulse">
+                  <div className="flex items-start gap-4 mb-4">
+                    <div className="w-14 h-14 rounded-xl bg-muted" />
+                    <div className="flex-1">
+                      <div className="h-4 bg-muted rounded w-3/4 mb-2" />
+                      <div className="h-3 bg-muted rounded w-1/2" />
                     </div>
                   </div>
+                  <div className="h-3 bg-muted rounded w-full mb-2" />
+                  <div className="h-3 bg-muted rounded w-5/6 mb-4" />
+                  <div className="h-8 bg-muted rounded-xl" />
                 </div>
-              </Link>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : featuredTools.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {featuredTools.map((tool, i) => (
+                <div
+                  key={tool._id || tool.slug || tool.name}
+                  className="animate-fade-in-up"
+                  style={{ animationDelay: `${i * 80}ms` }}
+                >
+                  <ToolCard tool={tool} />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {FEATURED_TOOLS.map((tool, i) => (
+                <Link
+                  key={tool.slug}
+                  to={`/tool/${tool.slug}`}
+                  className="group relative gradient-border rounded-2xl p-5 hover:glow-sm transition-all duration-300 animate-fade-in-up"
+                  style={{ animationDelay: `${i * 80}ms` }}
+                >
+                  <div className="flex items-start gap-4">
+                    <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${tool.gradient} flex items-center justify-center text-2xl flex-shrink-0 group-hover:scale-105 transition-transform`}>
+                      {tool.icon}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2 mb-1">
+                        <h3 className="font-bold text-base truncate">{tool.name}</h3>
+                        <span className="text-xs px-2 py-0.5 rounded-full border border-border text-muted-foreground flex-shrink-0">
+                          {tool.pricing}
+                        </span>
+                      </div>
+                      <p className="text-sm text-muted-foreground mb-2 line-clamp-2">{tool.desc}</p>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
+                          {tool.category}
+                        </span>
+                        <span className="flex items-center gap-1 text-xs font-semibold text-yellow-500">
+                          ⭐ {tool.rating}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
