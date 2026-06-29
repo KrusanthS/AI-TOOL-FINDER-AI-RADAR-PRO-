@@ -5,14 +5,14 @@
   "main": "src/app.js",
   "type": "module",
   "scripts": {
-    "start": "node src/app.js",
-    "dev": "nodemon src/app.js",
-    "worker": "node src/jobs/worker.js",
-    "seed": "node src/utils/seed.js",
-    "seed:coding": "node src/utils/seedCodingFromJson.js",
-    "seed:permanent": "node seedPermanentTools.js",
+    "start": "node --env-file=../.env src/app.js",
+    "dev": "nodemon --env-file=../.env src/app.js",
+    "worker": "node --env-file=../.env src/jobs/worker.js",
+    "seed": "node --env-file=../.env src/utils/seed.js",
+    "seed:coding": "node --env-file=../.env src/utils/seedCodingFromJson.js",
+    "seed:permanent": "node --env-file=../.env seedPermanentTools.js",
     "lint": "eslint .",
-    "sync-vector-db": "node src/utils/aiEngineMigration.js"
+    "sync-vector-db": "node --env-file=../.env src/utils/aiEngineMigration.js"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",

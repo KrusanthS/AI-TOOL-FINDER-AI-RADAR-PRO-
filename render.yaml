@@ -57,18 +57,18 @@ services:
 
       # Frontend Config (Compiled into static assets during build)
       - key: VITE_API_URL
-        value: "/api" # Since frontend & backend share the domain, relative URL is perfect!
+        value: "/api" # Relative URL — frontend & backend share the same Render domain
       - key: VITE_FIREBASE_API_KEY
-        sync: false
+        value: "AIzaSyDktgFcxRfeu71LiA_N8H4UZAtX5LRvvjI"
       - key: VITE_FIREBASE_AUTH_DOMAIN
-        sync: false
+        value: "ai-agent-c1a6f.firebaseapp.com"
       - key: VITE_FIREBASE_PROJECT_ID
-        sync: false
+        value: "ai-agent-c1a6f"
       - key: VITE_FIREBASE_STORAGE_BUCKET
-        sync: false
+        value: "ai-agent-c1a6f.firebasestorage.app"
       - key: VITE_FIREBASE_MESSAGING_SENDER_ID
-        sync: false
+        value: "165049853094"
       - key: VITE_FIREBASE_APP_ID
-        sync: false
+        value: "1:165049853094:web:2f5e62ba2f10c7e0dfc067"
       - key: VITE_FIREBASE_MEASUREMENT_ID
-        sync: false
+        value: "G-SRYCT3ZZ35"
