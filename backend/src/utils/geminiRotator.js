@@ -78,8 +78,8 @@ class GeminiRotator {
       const key = this.keys[i];
       try {
         const ai = new RealGoogleGenerativeAI(key);
-        // Use gemini-1.5-flash for a fast cheap check
-        const model = ai.getGenerativeModel({ model: 'gemini-1.5-flash' });
+        // Use gemini-2.5-flashfor a fast cheap check
+        const model = ai.getGenerativeModel({ model: "gemini-2.5-flash" });
         await model.generateContent('Hi');
         logger.info(`✅ API Key ${i + 1} is valid`);
       } catch (error) {
