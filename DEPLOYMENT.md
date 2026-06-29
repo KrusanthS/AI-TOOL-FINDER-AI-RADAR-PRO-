@@ -75,6 +75,7 @@ Go to the **Environment** tab in your service on Render and add the following ke
 | `PRODUCT_HUNT_API_SECRET` | `ItUE...` | Product Hunt client secret. |
 | `ADMIN_EMAIL` | `admin@example.com` | Main administrator email. |
 | `GITHUB_TOKEN` | `ghp_...` | Optional GitHub PAT. |
+| `CSP_CONNECT_ORIGINS` | `https://your-app.onrender.com` | Optional comma-separated extra origins allowed by backend CSP `connect-src`. |
 
 #### Frontend Variables (Must start with `VITE_` and be set before building)
 

@@ -61,8 +61,38 @@ app.set('trust proxy', 1);
 
 // Security Middleware
 
-app.use(helmet());
 const allowedOrigins = process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : ['http://localhost:5173'];
+const apiConnectOrigins = new Set(["'self'", 'http://localhost:3001', 'http://127.0.0.1:3001']);
+
+const deployedApiUrl = process.env.VITE_API_URL || process.env.API_URL;
+if (deployedApiUrl) {
+  try {
+    const resolvedApiUrl = new URL(deployedApiUrl, 'http://localhost');
+    if (resolvedApiUrl.origin !== 'http://localhost') {
+      apiConnectOrigins.add(resolvedApiUrl.origin);
+    }
+  } catch {
+    // Ignore invalid values and keep the default CSP list.
+  }
+}
+
+if (process.env.CSP_CONNECT_ORIGINS) {
+  process.env.CSP_CONNECT_ORIGINS.split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean)
+    .forEach((origin) => apiConnectOrigins.add(origin));
+}
+
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      useDefaults: true,
+      directives: {
+        connectSrc: Array.from(apiConnectOrigins),
+      },
+    },
+  })
+);
 app.use(cors({ origin: allowedOrigins, credentials: true }));
 app.use(express.json({ limit: '1mb' }));
 app.use((req, res, next) => {
