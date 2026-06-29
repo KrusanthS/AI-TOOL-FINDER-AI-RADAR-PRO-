@@ -74,45 +74,21 @@ const app = express();
 app.set('trust proxy', 1);
 
 // Security Middleware
-
-// In production the frontend and backend share the same origin, so we allow
-// all origins (same-origin requests don't include an Origin header, so CORS
-// isn't needed for them). In development restrict to the Vite dev server.
-const isProduction = process.env.NODE_ENV === 'production';
-const allowedOrigins = isProduction
-  ? true  // allow all origins — frontend is same-origin anyway
-  : (process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : ['http://localhost:5173', 'http://localhost:5174']);
-const apiConnectOrigins = new Set(["'self'", 'http://localhost:3001', 'http://127.0.0.1:3001']);
-
-const deployedApiUrl = process.env.VITE_API_URL || process.env.API_URL;
-if (deployedApiUrl) {
-  try {
-    const resolvedApiUrl = new URL(deployedApiUrl, 'http://localhost');
-    if (resolvedApiUrl.origin !== 'http://localhost') {
-      apiConnectOrigins.add(resolvedApiUrl.origin);
-    }
-  } catch {
-    // Ignore invalid values and keep the default CSP list.
-  }
-}
-
-if (process.env.CSP_CONNECT_ORIGINS) {
-  process.env.CSP_CONNECT_ORIGINS.split(',')
-    .map((origin) => origin.trim())
-    .filter(Boolean)
-    .forEach((origin) => apiConnectOrigins.add(origin));
-}
+//
+// CORS: The backend serves the frontend as static files, so they share the
+// same origin in production. We allow all origins by default so that the
+// frontend (wherever it's hosted) can always reach the API. Operators can
+// restrict this by setting ALLOWED_ORIGINS in the environment.
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
+  : true; // allow all origins — frontend is same-origin in production
 
 app.use(
   helmet({
-    contentSecurityPolicy: isProduction
-      ? false  // disable CSP in production — Render serves frontend+backend on same origin, CSP is handled by the CDN/proxy
-      : {
-          useDefaults: true,
-          directives: {
-            connectSrc: Array.from(apiConnectOrigins),
-          },
-        },
+    // Disable Helmet's default CSP — it was blocking same-origin /api calls
+    // because the generated connectSrc list didn't include 'self' properly.
+    // Each deployment can layer its own CSP via a reverse proxy instead.
+    contentSecurityPolicy: false,
   })
 );
 app.use(cors({ origin: allowedOrigins, credentials: true }));
