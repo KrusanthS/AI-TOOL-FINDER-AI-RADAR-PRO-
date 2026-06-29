@@ -56,19 +56,20 @@ services:
         sync: false
 
       # Frontend Config (Compiled into static assets during build)
+      # Set these in the Render Dashboard > Environment tab
       - key: VITE_API_URL
-        value: "/api" # Relative URL — frontend & backend share the same Render domain
+        value: "/api"
       - key: VITE_FIREBASE_API_KEY
-        value: "AIzaSyDktgFcxRfeu71LiA_N8H4UZAtX5LRvvjI"
+        sync: false
       - key: VITE_FIREBASE_AUTH_DOMAIN
-        value: "ai-agent-c1a6f.firebaseapp.com"
+        sync: false
       - key: VITE_FIREBASE_PROJECT_ID
-        value: "ai-agent-c1a6f"
+        sync: false
       - key: VITE_FIREBASE_STORAGE_BUCKET
-        value: "ai-agent-c1a6f.firebasestorage.app"
+        sync: false
       - key: VITE_FIREBASE_MESSAGING_SENDER_ID
-        value: "165049853094"
+        sync: false
       - key: VITE_FIREBASE_APP_ID
-        value: "1:165049853094:web:2f5e62ba2f10c7e0dfc067"
+        sync: false
       - key: VITE_FIREBASE_MEASUREMENT_ID
-        value: "G-SRYCT3ZZ35"
+        sync: false
