@@ -2,14 +2,11 @@
 import axios from 'axios';
 import { auth } from '../lib/firebase';
 
-const getBaseUrl = () => {
-  if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
-  if (import.meta.env.PROD) return '/api';
-  return 'http://localhost:3001/api';
-};
-
+// Always use a relative /api path.
+// - In development: Vite proxies /api → http://localhost:3001 (see vite.config.js)
+// - In production:  Express serves /api directly on the same origin (no CORS needed)
 const api = axios.create({
-  baseURL: getBaseUrl(),
+  baseURL: '/api',
   headers: {
     'Content-Type': 'application/json',
   },
