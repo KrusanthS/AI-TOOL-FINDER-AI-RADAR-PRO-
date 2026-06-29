@@ -7,14 +7,25 @@ import logger from '../utils/logger.js';
 const REDIS_URL = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
 
 const DISABLE_AUTONOMOUS = (process.env.DISABLE_AUTONOMOUS_AI === '1' || process.env.DISABLE_AUTONOMOUS_AI === 'true');
+const DISABLE_REDIS = process.env.DISABLE_REDIS === '1' || process.env.DISABLE_REDIS === 'true' || !process.env.REDIS_URL;
 
-export const discoveryQueue = new Queue('tool-discovery', REDIS_URL, {
-  createClient: createBullClient,
+const createNoopQueue = () => ({
+  add: async () => null,
+  process: () => undefined,
+  on: () => undefined,
 });
 
-export const enrichmentQueue = new Queue('ai-enrichment', REDIS_URL, {
-  createClient: createBullClient,
-});
+export const discoveryQueue = DISABLE_REDIS
+  ? createNoopQueue()
+  : new Queue('tool-discovery', REDIS_URL, {
+      createClient: createBullClient,
+    });
+
+export const enrichmentQueue = DISABLE_REDIS
+  ? createNoopQueue()
+  : new Queue('ai-enrichment', REDIS_URL, {
+      createClient: createBullClient,
+    });
 
 
 
@@ -118,6 +129,11 @@ discoveryQueue.process(runDiscovery);
 
 // Schedule the discovery job to run daily automatically
 export const scheduleDiscovery = () => {
+  if (DISABLE_REDIS) {
+    logger.info('Redis disabled by env. Skipping scheduled tool discovery jobs.');
+    return;
+  }
+
   if (redisClient.isReady) {
     // Runs every day at midnight to search the internet for new tools
     discoveryQueue.add({}, { repeat: { cron: '0 0 * * *' } }).catch(err => {

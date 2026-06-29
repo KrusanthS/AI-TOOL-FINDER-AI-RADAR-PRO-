@@ -62,6 +62,8 @@ Go to the **Environment** tab in your service on Render and add the following ke
 | `PORT` | `3001` | Express port (default is 3001). |
 | `MONGODB_URI` | `mongodb+srv://...` | Your MongoDB connection string (e.g., from MongoDB Atlas). |
 | `REDIS_URL` | `redis://...` | Connection URL for Redis (e.g., Upstash Redis). |
+| `ENABLE_BACKGROUND_JOBS` | `false` | Leave off for a single Render web service unless you also provide Redis. |
+| `VALIDATE_GEMINI_ON_STARTUP` | `false` | Skips startup quota checks that can spam logs or hit Gemini limits. |
 | `JWT_SECRET` | *Click "Generate"* | Secret used for internal session/token signing. |
 | `FIREBASE_PROJECT_ID` | `ai-agent-c1a6f` | Firebase Project ID. |
 | `FIREBASE_CLIENT_EMAIL` | `firebase-adminsdk-...` | Firebase Admin Service Account email. |

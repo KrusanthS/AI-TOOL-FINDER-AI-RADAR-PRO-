@@ -50,9 +50,22 @@ import consultantRoutes from './routes/consultant.js';
 // Initialize core services
 connectDB();
 initializeFirebase();
-scheduleDiscovery();
-scheduleTrendingDecay();
-validateGeminiKeys();
+
+const enableBackgroundJobs = process.env.ENABLE_BACKGROUND_JOBS === '1' || process.env.ENABLE_BACKGROUND_JOBS === 'true';
+const validateGeminiOnStartup = process.env.VALIDATE_GEMINI_ON_STARTUP === '1' || process.env.VALIDATE_GEMINI_ON_STARTUP === 'true';
+
+if (enableBackgroundJobs) {
+  scheduleDiscovery();
+  scheduleTrendingDecay();
+} else {
+  logger.info('Background jobs disabled by env. Skipping discovery and trending schedulers.');
+}
+
+if (validateGeminiOnStartup) {
+  validateGeminiKeys();
+} else {
+  logger.info('Gemini startup validation disabled by env.');
+}
 
 const app = express();
 

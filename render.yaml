@@ -20,6 +20,10 @@ services:
         sync: false
       - key: REDIS_URL
         sync: false
+      - key: ENABLE_BACKGROUND_JOBS
+        value: "false"
+      - key: VALIDATE_GEMINI_ON_STARTUP
+        value: "false"
       - key: FIREBASE_PROJECT_ID
         sync: false
       - key: FIREBASE_CLIENT_EMAIL
