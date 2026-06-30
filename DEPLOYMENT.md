@@ -65,7 +65,7 @@ Go to the **Environment** tab in your service on Render and add the following ke
 | `ENABLE_BACKGROUND_JOBS` | `false` | Leave off for a single Render web service unless you also provide Redis. |
 | `VALIDATE_GEMINI_ON_STARTUP` | `false` | Skips startup quota checks that can spam logs or hit Gemini limits. |
 | `JWT_SECRET` | *Click "Generate"* | Secret used for internal session/token signing. |
-| `FIREBASE_PROJECT_ID` | `ai-agent-c1a6f` | Firebase Project ID. |
+| `FIREBASE_PROJECT_ID` | `my-projects-59d67` | Firebase Project ID. |
 | `FIREBASE_CLIENT_EMAIL` | `firebase-adminsdk-...` | Firebase Admin Service Account email. |
 | `FIREBASE_PRIVATE_KEY` | `"-----BEGIN PRIVATE KEY-----\nMIIEvgI... (with literal \n characters)"` | **Note:** Include quotes to preserve newlines. |
 | `GROQ_API_KEY` | `gsk_...` | For AI semantic search features. |
@@ -84,10 +84,10 @@ Go to the **Environment** tab in your service on Render and add the following ke
 | Environment Variable | Value | Description |
 | :--- | :--- | :--- |
 | `VITE_API_URL` | `/api` | **Relative URL** since they are on the same domain. |
-| `VITE_FIREBASE_API_KEY` | `AIzaSyDktgFcxRfe...` | Firebase Client Web API Key. |
-| `VITE_FIREBASE_AUTH_DOMAIN` | `ai-agent-c1a6f.firebaseapp.com` | Firebase Client Auth Domain. |
-| `VITE_FIREBASE_PROJECT_ID` | `ai-agent-c1a6f` | Firebase Project ID. |
-| `VITE_FIREBASE_STORAGE_BUCKET` | `ai-agent-c1a6f.firebasestorage.app` | Firebase Storage Bucket. |
-| `VITE_FIREBASE_MESSAGING_SENDER_ID`| `165049853094` | Firebase Messaging Sender ID. |
-| `VITE_FIREBASE_APP_ID` | `1:165049853094:web:2f5e...` | Firebase Web App ID. |
-| `VITE_FIREBASE_MEASUREMENT_ID` | `G-SRYCT3ZZ35` | Firebase Measurement ID. |
+| `VITE_FIREBASE_API_KEY` | `AIzaSyBUo_ExMR8n...` | Firebase Client Web API Key. |
+| `VITE_FIREBASE_AUTH_DOMAIN` | `my-projects-59d67.firebaseapp.com` | Firebase Client Auth Domain. |
+| `VITE_FIREBASE_PROJECT_ID` | `my-projects-59d67` | Firebase Project ID. |
+| `VITE_FIREBASE_STORAGE_BUCKET` | `my-projects-59d67.firebasestorage.app` | Firebase Storage Bucket. |
+| `VITE_FIREBASE_MESSAGING_SENDER_ID`| `582208044818` | Firebase Messaging Sender ID. |
+| `VITE_FIREBASE_APP_ID` | `1:582208044818:web:5085...` | Firebase Web App ID. |
+| `VITE_FIREBASE_MEASUREMENT_ID` | `G-577MCR1X4E` | Firebase Measurement ID. |
