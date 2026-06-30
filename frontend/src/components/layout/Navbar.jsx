@@ -27,7 +27,8 @@ export default function Navbar() {
       await loginWithGoogle();
       setShowLoginModal(false);
     } catch (err) {
-      setLoginError('Login failed. Please try again.');
+      console.error('Google login error details:', err);
+      setLoginError(`Login failed: ${err.message || 'Please try again.'}`);
     } finally {
       setIsLoggingIn(false);
     }
