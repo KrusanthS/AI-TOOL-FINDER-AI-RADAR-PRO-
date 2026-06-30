@@ -1,12 +1,18 @@
 // frontend/src/hooks/useAuth.js
 import { useEffect } from 'react';
-import { onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged, getRedirectResult } from 'firebase/auth';
 import { auth, logout as firebaseLogout } from '../lib/firebase';
 import { useAuthStore } from '../store/authStore';
 import api from '../services/api';
 
 export const useAuth = () => {
   const { user, isAuthenticated, isLoading, setUser, setLoading, logout: storeLogout } = useAuthStore();
+
+  useEffect(() => {
+    getRedirectResult(auth).catch((error) => {
+      console.error('Firebase redirect sign-in error:', error);
+    });
+  }, []);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
