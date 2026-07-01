@@ -16,23 +16,14 @@ export default function Dashboard() {
     }
   }, [isAuthenticated]);
 
-  if (!isAuthenticated) {
-    return (
-      <div className="max-w-4xl mx-auto px-4 py-20 text-center animate-fade-in">
-        <div className="text-6xl mb-6">🔒</div>
-        <h1 className="text-3xl font-bold mb-3">Sign in required</h1>
-        <p className="text-muted-foreground mb-8">You need to sign in to access your dashboard.</p>
-        <button
-          onClick={() => navigate('/')}
-          className="px-8 py-3 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-semibold shadow-lg hover:shadow-violet-500/25 transition-all">
-          Sign In
-        </button>
-      </div>
-    );
-  }
-
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 animate-fade-in">
+      {!isAuthenticated && (
+        <div className="mb-8 p-4 rounded-xl bg-primary/5 border border-primary/20 text-sm flex items-center gap-3">
+          <span className="text-xl">👋</span>
+          <p>Sign in to personalise your dashboard and track your bookmarks.</p>
+        </div>
+      )}
       <div className="flex items-center gap-6 mb-10">
         <img
           src={user?.avatar || `https://ui-avatars.com/api/?name=${user?.displayName || 'User'}&background=6d28d9&color=fff`}

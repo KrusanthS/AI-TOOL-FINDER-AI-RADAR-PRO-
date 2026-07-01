@@ -12,6 +12,8 @@ export default function Bookmarks() {
   useEffect(() => {
     if (isAuthenticated) {
       fetchBookmarks();
+    } else {
+      setIsLoading(false);
     }
   }, [isAuthenticated]);
 
@@ -27,19 +29,6 @@ export default function Bookmarks() {
     }
   };
 
-  if (!isAuthenticated) {
-    return (
-      <div className="max-w-4xl mx-auto px-4 py-20 text-center animate-fade-in">
-        <div className="text-6xl mb-6">🔒</div>
-        <h1 className="text-3xl font-bold mb-3">Sign in required</h1>
-        <p className="text-muted-foreground mb-8">You need to sign in to view and manage your bookmarked tools.</p>
-        <Link to="/" className="px-8 py-3 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-semibold shadow-lg hover:shadow-violet-500/25 transition-all inline-block">
-          Go to Home
-        </Link>
-      </div>
-    );
-  }
-
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 animate-fade-in">
       <div className="flex items-center justify-between mb-8">
@@ -54,6 +43,12 @@ export default function Bookmarks() {
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="rounded-2xl border border-border bg-card p-5 animate-pulse h-64" />
           ))}
+        </div>
+      ) : !isAuthenticated ? (
+        <div className="text-center py-20 rounded-2xl border border-dashed border-border bg-card/50">
+          <div className="text-5xl mb-4">🔖</div>
+          <h3 className="text-xl font-bold mb-2">Sign in to see your bookmarks</h3>
+          <p className="text-muted-foreground mb-6">Save your favourite AI tools and access them here.</p>
         </div>
       ) : bookmarks.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">

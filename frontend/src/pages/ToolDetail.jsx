@@ -136,9 +136,6 @@ export default function ToolDetail() {
   const [data, setData] = useState({ tool: null, versions: [], related: [] });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [compareNotice, setCompareNotice] = useState(false);
-  const [analyzeNotice, setAnalyzeNotice] = useState(false);
-
   // AI Analysis state
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState(null);
@@ -170,11 +167,6 @@ export default function ToolDetail() {
   const { tool, versions, related } = data;
 
   const handleCompareToggle = () => {
-    if (!isAuthenticated) {
-      setCompareNotice(true);
-      setTimeout(() => setCompareNotice(false), 3500);
-      return;
-    }
     if (!tool?._id) return;
     let newIds;
     if (compareIds.includes(tool._id)) {
@@ -191,11 +183,6 @@ export default function ToolDetail() {
   };
 
   const handleAnalyze = async () => {
-    if (!isAuthenticated) {
-      setAnalyzeNotice(true);
-      setTimeout(() => setAnalyzeNotice(false), 3500);
-      return;
-    }
     if (isAnalyzing || analysisResult) return;
     setIsAnalyzing(true);
     setAnalysisError('');
@@ -369,20 +356,6 @@ export default function ToolDetail() {
           </div>
         </div>
       </div>
-
-      {/* Sign-in notice for compare */}
-      {compareNotice && (
-        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 px-6 py-3 rounded-xl bg-amber-500 text-white font-bold text-sm shadow-xl flex items-center gap-2 animate-fade-in-up">
-          <span>🔒</span> Please sign in to compare tools
-        </div>
-      )}
-
-      {/* Sign-in notice for AI analysis */}
-      {analyzeNotice && (
-        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 px-6 py-3 rounded-xl bg-amber-500 text-white font-bold text-sm shadow-xl flex items-center gap-2 animate-fade-in-up">
-          <span>🔒</span> Please sign in to analyze
-        </div>
-      )}
 
       {/* AI Summary */}
       {aiMeta?.summary && (

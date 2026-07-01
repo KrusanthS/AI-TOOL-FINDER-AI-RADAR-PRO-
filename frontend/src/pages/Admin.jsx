@@ -53,16 +53,6 @@ export default function Admin() {
     }
   };
 
-  if (!isAuthenticated) {
-    return (
-      <div className="max-w-4xl mx-auto px-4 py-20 text-center animate-fade-in">
-        <div className="text-6xl mb-6">🔒</div>
-        <h1 className="text-3xl font-bold mb-3">Sign in required</h1>
-        <p className="text-muted-foreground mb-8">You need to sign in to access the admin panel.</p>
-      </div>
-    );
-  }
-
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 animate-fade-in">
       {showDemo && (

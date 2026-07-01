@@ -63,16 +63,10 @@ export default function ToolCard({ tool, isSelectedForCompare, onCompare, compac
   const { isAuthenticated } = useAuthStore();
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [saveCount, setSaveCount] = useState(tool?.stats?.saves || 0);
-  const [compareNotice, setCompareNotice] = useState(false);
 
   const handleCompareClick = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!isAuthenticated) {
-      setCompareNotice(true);
-      setTimeout(() => setCompareNotice(false), 3000);
-      return;
-    }
     onCompare?.(toolId);
   };
 
@@ -126,7 +120,7 @@ export default function ToolCard({ tool, isSelectedForCompare, onCompare, compac
   const toggleBookmark = async (e) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     if (!isAuthenticated) {
       alert('Please sign in to bookmark tools');
       return;
@@ -158,15 +152,6 @@ export default function ToolCard({ tool, isSelectedForCompare, onCompare, compac
       {verified && (
         <div className="absolute top-3 left-12 z-10 text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 font-semibold">
           ✓ Verified
-        </div>
-      )}
-
-      {/* Sign-in toast for compare */}
-      {compareNotice && (
-        <div className="absolute inset-x-0 bottom-0 z-20 flex justify-center pb-3 pointer-events-none">
-          <div className="bg-amber-500 text-white text-xs font-bold px-4 py-2 rounded-xl shadow-xl flex items-center gap-1.5 animate-fade-in-up">
-            🔒 Please sign in to compare
-          </div>
         </div>
       )}
 
