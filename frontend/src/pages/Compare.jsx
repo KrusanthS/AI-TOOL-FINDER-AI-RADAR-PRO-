@@ -275,8 +275,7 @@ export default function Compare() {
     setTimeout(() => resultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
 
     try {
-      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
-      const response = await fetch(`${apiBase}/ai/compare`, {
+      const response = await fetch('/api/ai/compare', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ toolIds: selected.map(t => t._id) }),
