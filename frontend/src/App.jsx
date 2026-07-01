@@ -1,8 +1,6 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { useAuth } from './hooks/useAuth';
 import { useUIStore } from './store/uiStore';
-import { useAuthStore } from './store/authStore';
 
 // Layouts
 import Navbar from './components/layout/Navbar';
@@ -19,9 +17,7 @@ import Dashboard from './pages/Dashboard';
 import Admin from './pages/Admin';
 
 function App() {
-  useAuth(); // Initialize Firebase auth listener
   const theme = useUIStore((state) => state.theme);
-  const isLoading = useAuthStore((state) => state.isLoading);
 
   useEffect(() => {
     if (theme === 'dark') {

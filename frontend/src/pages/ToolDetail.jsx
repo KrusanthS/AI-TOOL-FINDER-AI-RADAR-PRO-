@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import api, { getReposForTool } from '../services/api';
 import { cn } from '../utils/cn';
-import { useAuthStore } from '../store/authStore';
 
 const FALLBACK_COLORS = [
   '#7C3AED', // Violet
@@ -132,7 +131,6 @@ function RelatedRepos({ toolName, category }) {
 
 export default function ToolDetail() {
   const { slug } = useParams();
-  const { isAuthenticated } = useAuthStore();
   const [data, setData] = useState({ tool: null, versions: [], related: [] });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
