@@ -1,7 +1,7 @@
 // frontend/src/hooks/useAuth.js
 import { useEffect } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
-import { auth, logout as firebaseLogout } from '../lib/firebase';
+import { auth, logout as firebaseLogout, getRedirectResult } from '../lib/firebase';
 import { useAuthStore } from '../store/authStore';
 import api from '../services/api';
 
@@ -9,6 +9,9 @@ export const useAuth = () => {
   const { user, isAuthenticated, isLoading, setUser, setLoading, logout: storeLogout } = useAuthStore();
 
   useEffect(() => {
+    // Handle Google redirect result on page load
+    getRedirectResult(auth).catch(() => {});
+
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         try {
