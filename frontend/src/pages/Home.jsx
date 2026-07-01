@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../services/api';
-import ToolCard from '../components/tools/ToolCard';
 
 const CATEGORIES = [
   { name: 'Writing', icon: '✍️', color: 'from-blue-500/20 to-cyan-500/20', count: 124 },
@@ -25,15 +24,6 @@ const CATEGORIES = [
   { name: 'AI Search Engines', icon: '🔎', color: 'from-yellow-500/20 to-amber-500/20', count: 40 },
 ];
 
-const FEATURED_TOOLS = [
-  { name: 'ChatGPT', category: 'Chat', pricing: 'Freemium', rating: 4.8, desc: 'Conversational AI for virtually any task', slug: 'chatgpt', icon: '🤖', gradient: 'from-emerald-400 to-teal-600' },
-  { name: 'Midjourney', category: 'Image', pricing: 'Paid', rating: 4.9, desc: 'Generate stunning AI art from text prompts', slug: 'midjourney', icon: '🎨', gradient: 'from-violet-400 to-purple-600' },
-  { name: 'GitHub Copilot', category: 'Coding', pricing: 'Paid', rating: 4.7, desc: 'AI pair programmer in your IDE', slug: 'github-copilot', icon: '👨‍💻', gradient: 'from-slate-400 to-slate-600' },
-  { name: 'Notion AI', category: 'Productivity', pricing: 'Freemium', rating: 4.5, desc: 'AI writing and thinking assistant in Notion', slug: 'notion-ai', icon: '📝', gradient: 'from-orange-400 to-amber-600' },
-  { name: 'Runway', category: 'Video', pricing: 'Freemium', rating: 4.6, desc: 'AI-powered video generation and editing', slug: 'runway', icon: '🎬', gradient: 'from-rose-400 to-pink-600' },
-  { name: 'ElevenLabs', category: 'Audio', pricing: 'Freemium', rating: 4.8, desc: 'Ultra-realistic AI voice generation', slug: 'elevenlabs', icon: '🎙️', gradient: 'from-blue-400 to-indigo-600' },
-];
-
 const STATS = [
   { label: 'AI Tools Catalogued', value: '2,400+', icon: '🛠️' },
   { label: 'Categories Covered', value: '30+', icon: '📂' },
@@ -48,45 +38,17 @@ export default function Home() {
 
   useEffect(() => {
     let cancelled = false;
-
-    const fetchFeaturedTools = async () => {
-      setIsFeaturedLoading(true);
-      try {
-        const response = await api.get('/tools', {
-          params: {
-            sort: 'rating',
-            page: 1,
-            limit: 6,
-          },
-        });
-
-        if (!cancelled) {
-          setFeaturedTools(response.data.tools || []);
-        }
-      } catch (error) {
-        if (!cancelled) {
-          console.error('Failed to fetch featured tools:', error);
-          setFeaturedTools([]);
-        }
-      } finally {
-        if (!cancelled) {
-          setIsFeaturedLoading(false);
-        }
-      }
-    };
-
-    fetchFeaturedTools();
-
-    return () => {
-      cancelled = true;
-    };
+    api.get('/tools/featured')
+      .then(res => { if (!cancelled) setFeaturedTools(res.data.tools || []); })
+      .catch(() => { if (!cancelled) setFeaturedTools([]); })
+      .finally(() => { if (!cancelled) setIsFeaturedLoading(false); });
+    return () => { cancelled = true; };
   }, []);
 
   return (
     <div className="min-h-screen overflow-hidden">
       {/* HERO SECTION */}
       <section className="relative pt-20 pb-32 px-4 overflow-hidden">
-        {/* Clean background */}
         <div className="absolute inset-0 -z-10 bg-background" />
 
         <div className="max-w-5xl mx-auto text-center">
@@ -110,7 +72,7 @@ export default function Home() {
 
           {/* Search Bar */}
           <div className="max-w-2xl mx-auto mb-10 animate-fade-in-up delay-150">
-            <form 
+            <form
               onSubmit={(e) => {
                 e.preventDefault();
                 const query = e.target.search.value;
@@ -129,7 +91,7 @@ export default function Home() {
                     className="w-full bg-transparent border-none outline-none text-base sm:text-lg py-2"
                   />
                 </div>
-                <button 
+                <button
                   type="submit"
                   className="px-6 py-3 bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-bold rounded-xl hover:opacity-90 transition-opacity flex-shrink-0"
                 >
@@ -210,6 +172,7 @@ export default function Home() {
               See all →
             </Link>
           </div>
+
           {isFeaturedLoading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {Array.from({ length: 6 }).map((_, i) => (
@@ -227,51 +190,71 @@ export default function Home() {
                 </div>
               ))}
             </div>
-          ) : featuredTools.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              {featuredTools.map((tool, i) => (
-                <div
-                  key={tool._id || tool.slug || tool.name}
-                  className="animate-fade-in-up"
-                  style={{ animationDelay: `${i * 80}ms` }}
-                >
-                  <ToolCard tool={tool} />
-                </div>
-              ))}
-            </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              {FEATURED_TOOLS.map((tool, i) => (
-                <Link
-                  key={tool.slug}
-                  to={`/tool/${tool.slug}`}
-                  className="group relative gradient-border rounded-2xl p-5 hover:glow-sm transition-all duration-300 animate-fade-in-up"
-                  style={{ animationDelay: `${i * 80}ms` }}
-                >
-                  <div className="flex items-start gap-4">
-                    <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${tool.gradient} flex items-center justify-center text-2xl flex-shrink-0 group-hover:scale-105 transition-transform`}>
-                      {tool.icon}
+              {featuredTools.map((tool, i) => {
+                let hostname = '';
+                try { hostname = new URL(tool.links.website).hostname; } catch (_) {}
+                return (
+                  <div
+                    key={tool.slug}
+                    className="group relative flex flex-col gradient-border rounded-2xl bg-card overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-300 ease-in-out animate-fade-in-up"
+                    style={{ animationDelay: `${i * 60}ms` }}
+                  >
+                    <div className="p-5 flex-1 flex flex-col">
+                      <div className="flex items-start gap-3 mb-3">
+                        <div className="w-12 h-12 rounded-xl bg-secondary border border-border flex items-center justify-center flex-shrink-0 overflow-hidden">
+                          {hostname ? (
+                            <img
+                              src={`https://www.google.com/s2/favicons?sz=128&domain=${hostname}`}
+                              alt={tool.name}
+                              className="w-full h-full object-cover"
+                              onError={e => {
+                                e.target.style.display = 'none';
+                                e.target.parentElement.querySelector('.fallback-initial').style.display = 'flex';
+                              }}
+                            />
+                          ) : null}
+                          <span
+                            className="fallback-initial w-full h-full items-center justify-center font-black text-white text-xl"
+                            style={{ display: hostname ? 'none' : 'flex', backgroundColor: '#7C3AED' }}
+                          >
+                            {tool.name.charAt(0)}
+                          </span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-2 mb-1">
+                            <h3 className="font-bold text-base truncate">{tool.name}</h3>
+                            <span className="text-[10px] px-2 py-0.5 rounded-md border border-border text-muted-foreground flex-shrink-0 uppercase font-bold">
+                              {tool.pricing.model}
+                            </span>
+                          </div>
+                          <span className="text-[10px] px-2 py-0.5 rounded-md bg-primary/5 text-primary/80 font-bold uppercase tracking-wider border border-primary/10">
+                            {tool.category}
+                          </span>
+                        </div>
+                      </div>
+                      <p className="text-sm text-muted-foreground line-clamp-2 flex-1">{tool.shortDescription}</p>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2 mb-1">
-                        <h3 className="font-bold text-base truncate">{tool.name}</h3>
-                        <span className="text-xs px-2 py-0.5 rounded-full border border-border text-muted-foreground flex-shrink-0">
-                          {tool.pricing}
-                        </span>
-                      </div>
-                      <p className="text-sm text-muted-foreground mb-2 line-clamp-2">{tool.desc}</p>
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
-                          {tool.category}
-                        </span>
-                        <span className="flex items-center gap-1 text-xs font-semibold text-yellow-500">
-                          ⭐ {tool.rating}
-                        </span>
-                      </div>
+                    <div className="border-t border-white/5 px-5 py-3 flex items-center justify-between bg-secondary/30">
+                      <Link
+                        to={`/tool/${tool.slug}`}
+                        className="text-[11px] font-bold bg-secondary hover:bg-secondary/80 text-foreground px-3 py-1.5 rounded-lg border border-border transition-all"
+                      >
+                        Details 📋
+                      </Link>
+                      <a
+                        href={tool.links.website}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[11px] font-black bg-gradient-to-r from-violet-600 to-indigo-600 text-white px-3 py-1.5 rounded-lg shadow-lg shadow-violet-500/20 hover:scale-105 transition-transform"
+                      >
+                        Launch 🚀
+                      </a>
                     </div>
                   </div>
-                </Link>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
@@ -286,7 +269,7 @@ export default function Home() {
               <div className="text-5xl mb-4">🤖</div>
               <h2 className="text-3xl font-black mb-3">AI-Powered Comparisons</h2>
               <p className="text-white/80 max-w-xl mx-auto mb-8 text-lg">
-                Our GPT-4o engine generates structured, unbiased comparisons between tools in seconds. 
+                Our GPT-4o engine generates structured, unbiased comparisons between tools in seconds.
                 Get feature tables, pros & cons, and intelligent recommendations.
               </p>
               <Link

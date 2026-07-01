@@ -7,7 +7,7 @@
 // will treat "categories" or "by-category" as a slug.
 
 import express from 'express';
-import { getTools, getToolBySlug, getCategories } from '../controllers/toolController.js';
+import { getTools, getToolBySlug, getCategories, getFeaturedTools } from '../controllers/toolController.js';
 import { cacheMiddleware } from '../middleware/cacheMiddleware.js';
 import directToolSearchRoutes from './directToolSearch.js';
 
@@ -19,6 +19,7 @@ router.use('/', directToolSearchRoutes);
 // ── Existing tools routes (preserved for backward compatibility) ────────────
 router.get('/', cacheMiddleware(300), getTools); // 5 min cache
 router.get('/categories-legacy', cacheMiddleware(3600), getCategories); // 1 hour cache (legacy)
+router.get('/featured', getFeaturedTools); // Curated front-page tools — no cache needed (static)
 router.get('/:slug', getToolBySlug); // No full page cache since view count needs to update
 
 export default router;
