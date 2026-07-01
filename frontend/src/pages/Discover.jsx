@@ -158,6 +158,12 @@ export default function Discover() {
           const fetched = result.tools || [];
           setTools(prev => page === 1 ? fetched : [...prev, ...fetched]);
           setHasMore(page < (result.pages || 1));
+        } else if (category === 'All' && !search && page === 1) {
+          // Default landing state — show curated featured tools
+          const res = await api.get('/tools/featured');
+          if (cancelled) return;
+          setTools(res.data.tools || []);
+          setHasMore(false);
         } else {
           const params = new URLSearchParams();
           if (category !== 'All') params.set('category', category);
